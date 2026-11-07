@@ -31,7 +31,7 @@ internal sealed unsafe class ComicWindow : IDisposable
             flags |= SDL_WindowFlags.SDL_WINDOW_FULLSCREEN;
         }
 
-        _window = SdlException.ThrowIfNull(SDL_CreateWindow(comic.Title, 800, 1200, flags), "SDL_CreateWindow");
+        _window = SdlException.ThrowIfNull(SDL_CreateWindow(comic.Heading, 800, 1200, flags), "SDL_CreateWindow");
         _renderer = SdlException.ThrowIfNull(SDL_CreateRenderer(_window, (byte*)null), "SDL_CreateRenderer");
 
         LoadPage();
@@ -136,7 +136,7 @@ internal sealed unsafe class ComicWindow : IDisposable
             _page = null;
         }
 
-        SDL_SetWindowTitle(_window, $"{_comic.Title}  ({_turner.Current + 1} of {_comic.PageCount})");
+        SDL_SetWindowTitle(_window, $"{_comic.Heading}  ({_turner.Current + 1} of {_comic.PageCount})");
 
         // the page stays pinned while SDL_image decodes it; the stream is closed when it is done
         using var pin = _comic.Page(_turner.Current).Pin();
