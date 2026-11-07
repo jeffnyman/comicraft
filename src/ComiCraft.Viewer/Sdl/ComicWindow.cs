@@ -17,11 +17,14 @@ internal sealed unsafe class ComicWindow : IDisposable
     private SDL_Window* _window;
     private SDL_Renderer* _renderer;
     private SDL_Texture* _page;
+    private readonly IReadOnlyList<Detail> _details;
+    private bool _showInfo;
 
     public ComicWindow(ComicBook comic, bool fullscreen)
     {
         _comic = comic;
         _turner = new PageTurner(comic.PageCount);
+        _details = ComicDetails.Of(comic);
 
         SdlException.ThrowIfFalse(SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_EVENTS), "SDL_Init");
 
@@ -68,7 +71,14 @@ internal sealed unsafe class ComicWindow : IDisposable
 
                 case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_DOWN when e.button.button == 1:
                 {
-                    // a click on the left half goes back a page, on the right half forward
+                    // a click puts the details away; otherwise, a click on the left half goes back
+                    // a page, on the right half forward
+                    if (_showInfo)
+                    {
+                        ToggleInfo();
+                        break;
+                    }
+
                     int width;
                     SDL_GetWindowSize(_window, &width, null);
                     Turn(e.button.x < width / 2f ? _turner.Previous() : _turner.Next());
@@ -83,9 +93,18 @@ internal sealed unsafe class ComicWindow : IDisposable
     {
         switch (key)
         {
+            // Escape puts the details away first, and quits when they are not showing
+            case SDL_Keycode.SDLK_ESCAPE when _showInfo:
+                ToggleInfo();
+                break;
+
             case SDL_Keycode.SDLK_ESCAPE:
             case SDL_Keycode.SDLK_Q:
                 return false;
+
+            case SDL_Keycode.SDLK_I:
+                ToggleInfo();
+                break;
 
             case SDL_Keycode.SDLK_RIGHT:
             case SDL_Keycode.SDLK_DOWN:
@@ -117,6 +136,12 @@ internal sealed unsafe class ComicWindow : IDisposable
         }
 
         return true;
+    }
+
+    private void ToggleInfo()
+    {
+        _showInfo = !_showInfo;
+        Draw();
     }
 
     private void Turn(bool changed)
@@ -184,7 +209,69 @@ internal sealed unsafe class ComicWindow : IDisposable
             SDL_RenderTexture(_renderer, _page, null, &target);
         }
 
+        if (_showInfo)
+        {
+            DrawInfo();
+        }
+
         SDL_RenderPresent(_renderer);
+    }
+
+    /// <summary>
+    /// The comic's details on a dark panel over the page, in SDL's built-in 8x8 font. The font is
+    /// scaled by a whole number, larger on a high density display, and made smaller when the window
+    /// is too narrow for a readable line.
+    /// </summary>
+    private void DrawInfo()
+    {
+        const int Glyph = 8, MaxColumns = 72, MinColumns = 40;
+
+        int outputWidth, outputHeight;
+        SDL_GetRenderOutputSize(_renderer, &outputWidth, &outputHeight);
+        float density = SDL_GetWindowDisplayScale(_window);
+        int scale = Math.Max(2, (int)MathF.Round(1.5f * (density > 0 ? density : 1)));
+        int twentieth = Math.Min(outputWidth, outputHeight) / 20;
+        int Margin(int s) => Math.Max(Glyph * s, twentieth);
+        while (scale > 1 && (outputWidth - 2 * Margin(scale)) / (Glyph * scale) - 2 < MinColumns)
+        {
+            scale--;
+        }
+
+        int glyph = Glyph * scale, lineHeight = 10 * scale, padding = glyph, margin = Margin(scale);
+        int columns = Math.Clamp((outputWidth - 2 * margin - 2 * padding) / glyph, 1, MaxColumns);
+        int maxRows = Math.Max(1, (outputHeight - 2 * margin - 2 * padding + lineHeight - glyph) / lineHeight);
+        var rows = InfoOverlay.Layout(_comic.Heading, _details, columns, maxRows);
+        int valueColumn = InfoOverlay.ValueColumn(_details, columns);
+
+        var panel = new SDL_FRect { w = columns * glyph + 2 * padding, h = rows.Count * lineHeight - (lineHeight - glyph) + 2 * padding };
+        panel.x = (outputWidth - panel.w) / 2;
+        panel.y = (outputHeight - panel.h) / 2;
+        SDL_SetRenderDrawBlendMode(_renderer, SDL_BlendMode.SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 220);
+        SDL_RenderFillRect(_renderer, &panel);
+
+        // the text is drawn at its scale, so its positions are given in that scale's units
+        SDL_SetRenderScale(_renderer, scale, scale);
+        float left = (panel.x + padding) / scale, top = (panel.y + padding) / scale;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            float y = top + i * lineHeight / (float)scale;
+            if (row.Kind == InfoOverlay.RowKind.Heading)
+            {
+                SDL_SetRenderDrawColor(_renderer, 255, 210, 120, 255);
+                SDL_RenderDebugText(_renderer, left, y, row.Text);
+            }
+            else if (row.Kind == InfoOverlay.RowKind.Detail)
+            {
+                SDL_SetRenderDrawColor(_renderer, 150, 150, 150, 255);
+                SDL_RenderDebugText(_renderer, left, y, row.Label);
+                SDL_SetRenderDrawColor(_renderer, 235, 235, 235, 255);
+                SDL_RenderDebugText(_renderer, left + valueColumn * Glyph, y, row.Text);
+            }
+        }
+
+        SDL_SetRenderScale(_renderer, 1, 1);
     }
 
     /// <summary>The largest rectangle of the page's shape that fits in the area, centred in it.</summary>

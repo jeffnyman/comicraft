@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComiCraft.Viewer\ComiCraft.Viewer.csproj" />
+  </ItemGroup>
+</Project>

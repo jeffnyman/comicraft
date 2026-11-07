@@ -94,10 +94,13 @@ internal static class Program
               Right, Down, Page Down, Space    next page
               Left, Up, Page Up, Backspace     previous page
               Home, End                        first page, last page
+              I                                comic details on and off
               F, F11                           full screen on and off
-              Escape, Q                        quit
+              Escape                           put details away, or quit
+              Q                                quit
 
-            A click on the right half of the page goes forward, on the left half back.
+            A click on the right half of the page goes forward, on the left half back;
+            with the details showing, a click puts them away.
             """);
     }
 }

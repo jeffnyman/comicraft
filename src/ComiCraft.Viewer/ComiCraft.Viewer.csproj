@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ComiCraft.Comics\ComiCraft.Comics.csproj" />
+    <InternalsVisibleTo Include="ComiCraft.Viewer.Tests" />
     <PackageReference Include="ppy.SDL3-CS" />
     <PackageReference Include="ppy.SDL3_image-CS" />
   </ItemGroup>
