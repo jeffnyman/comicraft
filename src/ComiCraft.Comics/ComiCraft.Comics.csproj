@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="ComiCraft.Comics.Tests" />
+    <PackageReference Include="SharpCompress" />
+  </ItemGroup>
+</Project>

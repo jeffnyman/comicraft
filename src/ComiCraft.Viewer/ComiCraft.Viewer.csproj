@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>comicraft</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ComiCraft.Comics\ComiCraft.Comics.csproj" />
+    <PackageReference Include="ppy.SDL3-CS" />
+    <PackageReference Include="ppy.SDL3_image-CS" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ComiCraft.Comics/ComiCraft.Comics.csproj" />
+    <Project Path="src/ComiCraft.Viewer/ComiCraft.Viewer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ComiCraft.Comics.Tests/ComiCraft.Comics.Tests.csproj" />
+  </Folder>
+</Solution>
