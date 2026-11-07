@@ -91,16 +91,22 @@ internal static class Program
             Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr>
 
             Keys:
-              Right, Down, Page Down, Space    next page
-              Left, Up, Page Up, Backspace     previous page
+              Space, Page Down                 down a screen, then on to the next page
+              Page Up                          up a screen, then back to the page before
+              Down, Up                         down or up a little, then on or back a page
+              Right, Left, Backspace           next page, previous page
               Home, End                        first page, last page
+              W                                fit the page whole, or to the width
               I                                comic details on and off
               F, F11                           full screen on and off
               Escape                           put details away, or quit
               Q                                quit
 
-            A click on the right half of the page goes forward, on the left half back;
-            with the details showing, a click puts them away.
+            The mouse wheel scrolls a page that is taller than the window. A click on
+            the right half of the window goes forward, as Page Down does, and on the
+            left half back; with the details showing, a click puts them away.
+
+            Where a page fits the window, every key that goes on or back turns a page.
             """);
     }
 }

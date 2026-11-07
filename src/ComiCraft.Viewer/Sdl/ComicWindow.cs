@@ -6,14 +6,14 @@ using static SDL.SDL3_image;
 namespace ComiCraft.Viewer.Sdl;
 
 /// <summary>
-/// A window that shows a comic one page at a time. The page is scaled to fit the window, keeping
-/// its shape, and centred on a dark background. The window waits for input rather than redrawing
+/// A window that shows a comic one page at a time, on a dark background. The page keeps its shape
+/// and is fitted to the window whole, or to the window's width and scrolled (see <see cref="Reading"/>). The window waits for input rather than redrawing
 /// in a loop: nothing on screen changes until the reader does something.
 /// </summary>
 internal sealed unsafe class ComicWindow : IDisposable
 {
     private readonly ComicBook _comic;
-    private readonly PageTurner _turner;
+    private readonly Reading _reading;
     private SDL_Window* _window;
     private SDL_Renderer* _renderer;
     private SDL_Texture* _page;
@@ -24,7 +24,7 @@ internal sealed unsafe class ComicWindow : IDisposable
     public ComicWindow(ComicBook comic, bool fullscreen)
     {
         _comic = comic;
-        _turner = new PageTurner(comic.PageCount);
+        _reading = new Reading(new PageTurner(comic.PageCount), new PageView());
         _details = ComicDetails.Of(comic);
 
         SdlException.ThrowIfFalse(SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_EVENTS), "SDL_Init");
@@ -64,17 +64,26 @@ internal sealed unsafe class ComicWindow : IDisposable
                     break;
 
                 case SDL_EventType.SDL_EVENT_KEY_DOWN:
-                    if (!OnKey(e.key.key))
+                    if (!OnKey(e.key.key, e.key.repeat))
                     {
                         return;
                     }
 
                     break;
 
+                case SDL_EventType.SDL_EVENT_MOUSE_WHEEL:
+                {
+                    // the wheel (or two fingers on a trackpad) scrolls the page, and never turns it;
+                    // its direction is the system's, natural scrolling included
+                    var frame = CurrentFrame();
+                    Show(_reading.Scroll(frame, -e.wheel.y * frame.AreaHeight * WheelStep));
+                    break;
+                }
+
                 case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_DOWN when e.button.button == 1:
                 {
                     // a click puts the details away; otherwise, a click on the left half goes back
-                    // a page, on the right half forward
+                    // and on the right half forward, as Page Up and Page Down do
                     if (_showInfo)
                     {
                         ToggleInfo();
@@ -83,15 +92,15 @@ internal sealed unsafe class ComicWindow : IDisposable
 
                     int width;
                     SDL_GetWindowSize(_window, &width, null);
-                    Turn(e.button.x < width / 2f ? _turner.Previous() : _turner.Next());
+                    Show(e.button.x < width / 2f ? _reading.ScreenBack(CurrentFrame()) : _reading.ScreenForward(CurrentFrame()));
                     break;
                 }
             }
         }
     }
 
-    /// <summary>Acts on a key; returns false when the reader asked to quit.</summary>
-    private bool OnKey(SDL_Keycode key)
+    /// <summary>Acts on a key, which may be repeating from being held; returns false when the reader asked to quit.</summary>
+    private bool OnKey(SDL_Keycode key, bool repeat)
     {
         switch (key)
         {
@@ -108,26 +117,44 @@ internal sealed unsafe class ComicWindow : IDisposable
                 ToggleInfo();
                 break;
 
-            case SDL_Keycode.SDLK_RIGHT:
-            case SDL_Keycode.SDLK_DOWN:
-            case SDL_Keycode.SDLK_PAGEDOWN:
+            case SDL_Keycode.SDLK_W:
+                _reading.View.Fit = _reading.View.Fit == Fit.Page ? Fit.Width : Fit.Page;
+                ShowTitle();
+                Draw();
+                break;
+
             case SDL_Keycode.SDLK_SPACE:
-                Turn(_turner.Next());
+            case SDL_Keycode.SDLK_PAGEDOWN:
+                Show(_reading.ScreenForward(CurrentFrame(), repeat));
+                break;
+
+            case SDL_Keycode.SDLK_PAGEUP:
+                Show(_reading.ScreenBack(CurrentFrame(), repeat));
+                break;
+
+            case SDL_Keycode.SDLK_DOWN:
+                Show(_reading.StepForward(CurrentFrame(), repeat));
+                break;
+
+            case SDL_Keycode.SDLK_UP:
+                Show(_reading.StepBack(CurrentFrame(), repeat));
+                break;
+
+            case SDL_Keycode.SDLK_RIGHT:
+                Show(_reading.NextPage());
                 break;
 
             case SDL_Keycode.SDLK_LEFT:
-            case SDL_Keycode.SDLK_UP:
-            case SDL_Keycode.SDLK_PAGEUP:
             case SDL_Keycode.SDLK_BACKSPACE:
-                Turn(_turner.Previous());
+                Show(_reading.PreviousPage());
                 break;
 
             case SDL_Keycode.SDLK_HOME:
-                Turn(_turner.First());
+                Show(_reading.FirstPage());
                 break;
 
             case SDL_Keycode.SDLK_END:
-                Turn(_turner.Last());
+                Show(_reading.LastPage());
                 break;
 
             case SDL_Keycode.SDLK_F:
@@ -146,13 +173,41 @@ internal sealed unsafe class ComicWindow : IDisposable
         Draw();
     }
 
-    private void Turn(bool changed)
+    /// <summary>A turn of the mouse wheel scrolls this share of the window's height.</summary>
+    private const float WheelStep = 0.05f;
+
+    /// <summary>Shows what the reader's action did: another page, or another part of this one.</summary>
+    private void Show(Moved moved)
     {
-        if (changed)
+        if (moved == Moved.Turned)
         {
             LoadPage();
+        }
+
+        if (moved != Moved.Nothing)
+        {
             Draw();
         }
+    }
+
+    /// <summary>The current page's size and the window's, in the renderer's pixels.</summary>
+    private Frame CurrentFrame()
+    {
+        int outputWidth, outputHeight;
+        float pageWidth = 0, pageHeight = 0;
+        SDL_GetRenderOutputSize(_renderer, &outputWidth, &outputHeight);
+        if (_page is not null)
+        {
+            SDL_GetTextureSize(_page, &pageWidth, &pageHeight);
+        }
+
+        return new Frame(pageWidth, pageHeight, outputWidth, outputHeight);
+    }
+
+    private void ShowTitle()
+    {
+        string fit = _reading.View.Fit == Fit.Width ? ", fit to width" : "";
+        SDL_SetWindowTitle(_window, $"{_comic.Heading}  ({_reading.Turner.Current + 1} of {_comic.PageCount}{fit})");
     }
 
     private void LoadPage()
@@ -163,15 +218,17 @@ internal sealed unsafe class ComicWindow : IDisposable
             _page = null;
         }
 
-        SDL_SetWindowTitle(_window, $"{_comic.Heading}  ({_turner.Current + 1} of {_comic.PageCount})");
+        ShowTitle();
 
         // the page stays pinned while SDL_image decodes it; the stream is closed when it is done
-        using var pin = _comic.Page(_turner.Current).Pin();
-        var io = SdlException.ThrowIfNull(SDL_IOFromConstMem((IntPtr)pin.Pointer, (nuint)_comic.Page(_turner.Current).Length), "SDL_IOFromConstMem");
+        int current = _reading.Turner.Current;
+        var image = _comic.Page(current);
+        using var pin = image.Pin();
+        var io = SdlException.ThrowIfNull(SDL_IOFromConstMem((IntPtr)pin.Pointer, (nuint)image.Length), "SDL_IOFromConstMem");
         _page = IMG_LoadTexture_IO(_renderer, io, true);
         if (_page is null)
         {
-            Console.Error.WriteLine($"comicraft: page {_turner.Current + 1} ({_comic.PageNames[_turner.Current]}) could not be shown: {SDL_GetError()}");
+            Console.Error.WriteLine($"comicraft: page {current + 1} ({_comic.PageNames[current]}) could not be shown: {SDL_GetError()}");
         }
     }
 
@@ -191,8 +248,8 @@ internal sealed unsafe class ComicWindow : IDisposable
 
         float pageWidth, pageHeight;
         SDL_GetTextureSize(_page, &pageWidth, &pageHeight);
-        var fit = Fit(pageWidth, pageHeight, bounds.w * 0.9f, bounds.h * 0.9f);
-        SDL_SetWindowSize(_window, (int)fit.w, (int)fit.h);
+        var fit = new PageView().Place(new Frame(pageWidth, pageHeight, bounds.w * 0.9f, bounds.h * 0.9f));
+        SDL_SetWindowSize(_window, (int)fit.Width, (int)fit.Height);
         SDL_SetWindowPosition(_window, (int)SDL_WINDOWPOS_CENTERED, (int)SDL_WINDOWPOS_CENTERED);
     }
 
@@ -203,11 +260,8 @@ internal sealed unsafe class ComicWindow : IDisposable
 
         if (_page is not null)
         {
-            int outputWidth, outputHeight;
-            float pageWidth, pageHeight;
-            SDL_GetRenderOutputSize(_renderer, &outputWidth, &outputHeight);
-            SDL_GetTextureSize(_page, &pageWidth, &pageHeight);
-            var target = Fit(pageWidth, pageHeight, outputWidth, outputHeight);
+            var place = _reading.View.Place(CurrentFrame());
+            var target = new SDL_FRect { x = place.X, y = place.Y, w = place.Width, h = place.Height };
             SDL_RenderTexture(_renderer, _page, null, &target);
         }
 
@@ -285,14 +339,6 @@ internal sealed unsafe class ComicWindow : IDisposable
                 _text.Draw(row.Text, left + valueColumn, y, valueColor);
             }
         }
-    }
-
-    /// <summary>The largest rectangle of the page's shape that fits in the area, centred in it.</summary>
-    internal static SDL_FRect Fit(float pageWidth, float pageHeight, float areaWidth, float areaHeight)
-    {
-        float scale = Math.Min(areaWidth / pageWidth, areaHeight / pageHeight);
-        float width = pageWidth * scale, height = pageHeight * scale;
-        return new SDL_FRect { x = (areaWidth - width) / 2, y = (areaHeight - height) / 2, w = width, h = height };
     }
 
     public void Dispose()
