@@ -17,6 +17,7 @@ internal sealed unsafe class ComicWindow : IDisposable
     private SDL_Window* _window;
     private SDL_Renderer* _renderer;
     private SDL_Texture* _page;
+    private TextRenderer? _text;
     private readonly IReadOnlyList<Detail> _details;
     private bool _showInfo;
 
@@ -36,6 +37,7 @@ internal sealed unsafe class ComicWindow : IDisposable
 
         _window = SdlException.ThrowIfNull(SDL_CreateWindow(comic.Heading, 800, 1200, flags), "SDL_CreateWindow");
         _renderer = SdlException.ThrowIfNull(SDL_CreateRenderer(_window, (byte*)null), "SDL_CreateRenderer");
+        _text = new TextRenderer(_renderer, TextSize);
 
         LoadPage();
         SizeToFirstPage();
@@ -217,61 +219,72 @@ internal sealed unsafe class ComicWindow : IDisposable
         SDL_RenderPresent(_renderer);
     }
 
+    /// <summary>The size of text, in points; on a high density display, it is that many times as many pixels.</summary>
+    private const float TextSize = 15;
+
     /// <summary>
-    /// The comic's details on a dark panel over the page, in SDL's built-in 8x8 font. The font is
-    /// scaled by a whole number, larger on a high density display, and made smaller when the window
-    /// is too narrow for a readable line.
+    /// The comic's details on a dark panel over the page. The text is its usual size where the
+    /// window has room for it, and smaller where the window is too narrow for a readable line.
     /// </summary>
     private void DrawInfo()
     {
-        const int Glyph = 8, MaxColumns = 72, MinColumns = 40;
+        // widths in ems, that is, in multiples of the text's size: the panel is never wider than
+        // a comfortable line, and the text is made smaller to keep a line from being too short
+        const float MaxWidth = 34, MinWidth = 26;
+
+        if (_text is null)
+        {
+            return;
+        }
 
         int outputWidth, outputHeight;
         SDL_GetRenderOutputSize(_renderer, &outputWidth, &outputHeight);
         float density = SDL_GetWindowDisplayScale(_window);
-        int scale = Math.Max(2, (int)MathF.Round(1.5f * (density > 0 ? density : 1)));
-        int twentieth = Math.Min(outputWidth, outputHeight) / 20;
-        int Margin(int s) => Math.Max(Glyph * s, twentieth);
-        while (scale > 1 && (outputWidth - 2 * Margin(scale)) / (Glyph * scale) - 2 < MinColumns)
+        density = density > 0 ? density : 1;
+
+        float margin = Math.Max(16 * density, Math.Min(outputWidth, outputHeight) / 20f);
+        float room = outputWidth - 2 * margin;
+        float size = Math.Max(8 * density, Math.Min(TextSize * density, room / MinWidth));
+        _text.SetSize(size);
+
+        float padding = size;
+        float width = Math.Min(room - 2 * padding, MaxWidth * size);
+        int lineHeight = _text.LineHeight;
+        int maxRows = (int)((outputHeight - 2 * margin - 2 * padding) / lineHeight);
+        if (width < 1 || maxRows < 1)
         {
-            scale--;
+            return;
         }
 
-        int glyph = Glyph * scale, lineHeight = 10 * scale, padding = glyph, margin = Margin(scale);
-        int columns = Math.Clamp((outputWidth - 2 * margin - 2 * padding) / glyph, 1, MaxColumns);
-        int maxRows = Math.Max(1, (outputHeight - 2 * margin - 2 * padding + lineHeight - glyph) / lineHeight);
-        var rows = InfoOverlay.Layout(_comic.Heading, _details, columns, maxRows);
-        int valueColumn = InfoOverlay.ValueColumn(_details, columns);
+        Func<string, float> measure = text => _text.Measure(text);
+        var rows = InfoOverlay.Layout(_comic.Heading, _details, width, maxRows, measure, text => _text.Measure(text, heading: true));
+        float valueColumn = InfoOverlay.ValueColumn(_details, width, measure);
 
-        var panel = new SDL_FRect { w = columns * glyph + 2 * padding, h = rows.Count * lineHeight - (lineHeight - glyph) + 2 * padding };
+        var panel = new SDL_FRect { w = width + 2 * padding, h = rows.Count * lineHeight + 2 * padding };
         panel.x = (outputWidth - panel.w) / 2;
         panel.y = (outputHeight - panel.h) / 2;
         SDL_SetRenderDrawBlendMode(_renderer, SDL_BlendMode.SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 220);
         SDL_RenderFillRect(_renderer, &panel);
 
-        // the text is drawn at its scale, so its positions are given in that scale's units
-        SDL_SetRenderScale(_renderer, scale, scale);
-        float left = (panel.x + padding) / scale, top = (panel.y + padding) / scale;
+        var headingColor = new SDL_Color { r = 255, g = 210, b = 120, a = 255 };
+        var labelColor = new SDL_Color { r = 150, g = 150, b = 150, a = 255 };
+        var valueColor = new SDL_Color { r = 235, g = 235, b = 235, a = 255 };
+        float left = panel.x + padding;
         for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            float y = top + i * lineHeight / (float)scale;
+            float y = panel.y + padding + i * lineHeight;
             if (row.Kind == InfoOverlay.RowKind.Heading)
             {
-                SDL_SetRenderDrawColor(_renderer, 255, 210, 120, 255);
-                SDL_RenderDebugText(_renderer, left, y, row.Text);
+                _text.Draw(row.Text, left, y, headingColor, heading: true);
             }
             else if (row.Kind == InfoOverlay.RowKind.Detail)
             {
-                SDL_SetRenderDrawColor(_renderer, 150, 150, 150, 255);
-                SDL_RenderDebugText(_renderer, left, y, row.Label);
-                SDL_SetRenderDrawColor(_renderer, 235, 235, 235, 255);
-                SDL_RenderDebugText(_renderer, left + valueColumn * Glyph, y, row.Text);
+                _text.Draw(row.Label, left, y, labelColor);
+                _text.Draw(row.Text, left + valueColumn, y, valueColor);
             }
         }
-
-        SDL_SetRenderScale(_renderer, 1, 1);
     }
 
     /// <summary>The largest rectangle of the page's shape that fits in the area, centred in it.</summary>
@@ -289,6 +302,10 @@ internal sealed unsafe class ComicWindow : IDisposable
             SDL_DestroyTexture(_page);
             _page = null;
         }
+
+        // the text is drawn by the renderer, and so goes before it
+        _text?.Dispose();
+        _text = null;
 
         if (_renderer is not null)
         {

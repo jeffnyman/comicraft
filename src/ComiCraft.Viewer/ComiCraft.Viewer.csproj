@@ -9,5 +9,12 @@
     <InternalsVisibleTo Include="ComiCraft.Viewer.Tests" />
     <PackageReference Include="ppy.SDL3-CS" />
     <PackageReference Include="ppy.SDL3_image-CS" />
+    <PackageReference Include="ppy.SDL3_ttf-CS" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Inter, for the text the viewer draws, built into the viewer; its licence, the SIL Open
+         Font License, goes beside the viewer, as the licence asks -->
+    <EmbeddedResource Include="Fonts\*.ttf" LogicalName="ComiCraft.Viewer.Fonts.%(Filename)%(Extension)" />
+    <None Include="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
