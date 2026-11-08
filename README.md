@@ -1,8 +1,8 @@
 # ComiCraft
 
 **ComiCraft** is a C# viewer for digital comics: CBZ (zip) and CBR (RAR) files. It shows a comic
-a page at a time, either whole or fitted to the window's width and scrolled, and shows what the
-comic's `ComicInfo.xml` says about it, when it has one.
+a page at a time, whole, fitted to the window's width, or zoomed, and scrolled across and down,
+and shows what the comic's `ComicInfo.xml` says about it, when it has one.
 
 A comic's kind is found from its contents, not its extension, so a CBR that is really a zip (or
 the other way round) opens all the same. Its pages are the images in it (JPEG, PNG, GIF, WebP,
@@ -20,25 +20,41 @@ BMP) in the natural order of their names, so `page2.jpg` comes before `page10.jp
 ### Fitting the page
 
 A comic page is taller than it is wide, and most screens are the other way round, so there are
-two ways to show it. **W** switches between them; the title bar says when the page is fitted to
-the width.
+two ways to show it, and the page can be zoomed beyond either. **W** switches between the two;
+the title bar says when the page is fitted to the width, and how far it is zoomed.
 
 | Fit | What it does |
 |---|---|
 | Page | The whole page is seen at once, as large as fits. This is where a comic opens. |
 | Width | The page fills the width of the window, and is scrolled down through. Panels and lettering are as large as the window allows. |
+| Zoomed | The page is as large as you zoom it, from the whole page (100%) to four of the screen's pixels to each of the page's, and is scrolled across and down. |
+
+**+** and **−** zoom in and out at the middle of the window; Ctrl with the wheel, or a pinch on a
+trackpad, zooms at the pointer, keeping what is under it where it is. **0** goes back to the
+whole page. A zoom stays as the pages turn, as large on the next page as on this one, since what
+needed it on one page will on the next.
+
+### Reading a page larger than the window
+
+A page is read as it is in print: across, and then down. Space goes a screen across the page; at
+its right, back to its left a screen further down; at its end, on to the next page, at its top
+left. Page Up goes the other way, back to the end of the page before. Where the page is no wider
+than the window, there is nothing to go across, and Space simply goes down.
 
 ### Keys
 
 | Key | What it does |
 |---|---|
-| Space, Page Down | Goes down a screen. At the bottom of a page, goes on to the top of the next. |
-| Page Up | Goes up a screen. At the top of a page, goes back to the bottom of the one before. |
+| Space, Page Down | Goes a screen across the page, or down it. At the end of a page, goes on to the top of the next. |
+| Page Up | Goes a screen back across the page, or up it. At the start of a page, goes back to the end of the one before. |
 | Down, Up | Goes down or up a little. At the end of a page, goes on or back a page, as above. |
-| Right | Goes to the next page, at its top. |
-| Left, Backspace | Goes to the page before, at its top. |
+| Right | Goes right a little across a page wider than the window; at its right, or where the page fits, goes to the next page, at its top. |
+| Left | Goes left a little across a page wider than the window; at its left, or where the page fits, goes to the page before, at its top. |
+| Backspace | Goes to the page before, at its top. |
 | Home, End | Goes to the first page, or the last. |
 | W | Fits the page whole, or to the width. |
+| +, − | Zooms in, or out, at the middle of the window. (= zooms in too, so Shift is not needed.) |
+| 0 | Fits the whole page again. |
 | I | Shows the comic's details, or puts them away. |
 | F, F11 | Switches between a window and the full screen. |
 | Escape | Puts the details away when they are showing; quits otherwise. |
@@ -47,18 +63,24 @@ the width.
 Where the whole page is seen, there is nothing to scroll, so every key that goes on or back
 simply turns a page.
 
-Space, Page Down, Page Up, Down and Up, held down, scroll to the end of the page and stop there,
-and go on to the next page only when pressed again, so they never run on through pages unread.
-Where the whole page is seen, they turn page after page when held, as Right and Left always do.
+The keys that go on or back, held down, scroll to the end of the page and stop there, and go on to
+the next page only when pressed again, so they never run on through pages unread; Space and Page
+Up stop at the end of each row of a page wider than the window, too. Where the whole page is
+seen, they turn page after page when held.
 
 ### Mouse
 
 | Action | What it does |
 |---|---|
-| Wheel, or two fingers on a trackpad | Scrolls a page that is taller than the window. It never turns the page. |
+| Wheel, or two fingers on a trackpad | Scrolls a page that is larger than the window, across as well as down. It never turns the page. |
+| Ctrl and the wheel, or a pinch on a trackpad | Zooms in or out at the pointer. |
+| Drag | Moves a page that is larger than the window. |
 | Click on the right half of the window | Goes forward, as Page Down does. |
 | Click on the left half of the window | Goes back, as Page Up does. |
 | Click with the details showing | Puts them away. |
+
+A click is a press and a release in the same place; once the pointer moves a few points with the
+button down, it is a drag, and the release turns no page.
 
 ### The comic's details
 

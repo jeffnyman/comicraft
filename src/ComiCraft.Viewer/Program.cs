@@ -83,27 +83,33 @@ internal static class Program
 
     private const string Usage = """
         Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr>
-               comicraft tag <comic> [--<field> <value>...]        show or change its ComicInfo.xml
-               comicraft convert <comic | folder> [--format pdf]   make a CBZ of it, or a PDF
+               comicraft tag <comic> [--<field> <value>...]         its ComicInfo.xml
+               comicraft convert <comic | folder> [--format pdf]    a CBZ or PDF of it
 
         'comicraft tag --help' and 'comicraft convert --help' say more about each.
 
         Keys:
-          Space, Page Down                 down a screen, then on to the next page
-          Page Up                          up a screen, then back to the page before
-          Down, Up                         down or up a little, then on or back a page
-          Right, Left, Backspace           next page, previous page
-          Home, End                        first page, last page
-          W                                fit the page whole, or to the width
-          I                                comic details on and off
-          F, F11                           full screen on and off
-          Escape                           put details away, or quit
-          Q                                quit
+          Space, Page Down      a screen across or down, then the next page
+          Page Up               a screen back across or up, then the page before
+          Down, Up              down or up a little, then on or back a page
+          Right, Left           a little across a wide page, else turn the page
+          Backspace             previous page
+          Home, End             first page, last page
+          W                     fit the page whole, or to the width
+          +, -  (or =)          zoom in, zoom out
+          0                     the whole page again
+          I                     comic details on and off
+          F, F11                full screen on and off
+          Escape                put details away, or quit
+          Q                     quit
 
-        The mouse wheel scrolls a page that is taller than the window. A click on
-        the right half of the window goes forward, as Page Down does, and on the
-        left half back; with the details showing, a click puts them away.
+        The mouse wheel scrolls a page that is larger than the window, across and
+        down; with Ctrl, or as a pinch on a trackpad, it zooms at the pointer. A
+        drag moves the page. A click on the right half of the window goes forward,
+        as Page Down does, and on the left half back; with the details showing, a
+        click puts them away.
 
-        Where a page fits the window, every key that goes on or back turns a page.
+        A page larger than the window is read across, then down. Where a page fits
+        the window, every key that goes on or back turns a page.
         """;
 }

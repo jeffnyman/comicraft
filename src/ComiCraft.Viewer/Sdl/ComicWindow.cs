@@ -7,8 +7,9 @@ namespace ComiCraft.Viewer.Sdl;
 
 /// <summary>
 /// A window that shows a comic one page at a time, on a dark background. The page keeps its shape
-/// and is fitted to the window whole, or to the window's width and scrolled (see <see cref="Reading"/>). The window waits for input rather than redrawing
-/// in a loop: nothing on screen changes until the reader does something.
+/// and is fitted to the window whole, or to the window's width, or zoomed, and scrolled across and
+/// down (see <see cref="Reading"/>). The window waits for input rather than redrawing in a loop:
+/// nothing on screen changes until the reader does something.
 /// </summary>
 internal sealed unsafe class ComicWindow : IDisposable
 {
@@ -20,6 +21,12 @@ internal sealed unsafe class ComicWindow : IDisposable
     private TextRenderer? _text;
     private readonly IReadOnlyList<Detail> _details;
     private bool _showInfo;
+
+    // the left button, while it is down: where it went down, in the window's points, and whether
+    // it has moved far enough since to be a drag rather than a click
+    private bool _pressed, _dragging;
+    private float _pressX, _pressY;
+    private SDL_Cursor* _moveCursor;
 
     public ComicWindow(ComicBook comic, bool fullscreen)
     {
@@ -38,6 +45,7 @@ internal sealed unsafe class ComicWindow : IDisposable
         _window = SdlException.ThrowIfNull(SDL_CreateWindow(comic.Heading, 800, 1200, flags), "SDL_CreateWindow");
         _renderer = SdlException.ThrowIfNull(SDL_CreateRenderer(_window, (byte*)null), "SDL_CreateRenderer");
         _text = new TextRenderer(_renderer, TextSize);
+        _moveCursor = SDL_CreateSystemCursor(SDL_SystemCursor.SDL_SYSTEM_CURSOR_MOVE);
 
         LoadPage();
         SizeToFirstPage();
@@ -73,30 +81,112 @@ internal sealed unsafe class ComicWindow : IDisposable
 
                 case SDL_EventType.SDL_EVENT_MOUSE_WHEEL:
                 {
-                    // the wheel (or two fingers on a trackpad) scrolls the page, and never turns it;
-                    // its direction is the system's, natural scrolling included
+                    // with Ctrl, the wheel zooms at the pointer; otherwise it (or two fingers on a
+                    // trackpad) scrolls the page, across as well as down, and never turns it; its
+                    // direction is the system's, natural scrolling included
+                    float density = Density();
+                    if ((SDL_GetModState() & SDL_Keymod.SDL_KMOD_CTRL) != 0)
+                    {
+                        ZoomAt(Math.Pow(ZoomStep, e.wheel.y), e.wheel.mouse_x * density, e.wheel.mouse_y * density);
+                        break;
+                    }
+
                     var frame = CurrentFrame();
-                    Show(_reading.Scroll(frame, -e.wheel.y * frame.AreaHeight * WheelStep));
+                    Show(_reading.Pan(frame, e.wheel.x * frame.AreaWidth * WheelStep, -e.wheel.y * frame.AreaHeight * WheelStep));
+                    break;
+                }
+
+                case SDL_EventType.SDL_EVENT_PINCH_UPDATE:
+                {
+                    // a pinch on a trackpad zooms at the pointer, by as much as the fingers spread
+                    float x, y, density = Density();
+                    SDL_GetMouseState(&x, &y);
+                    ZoomAt(e.pinch.scale, x * density, y * density);
                     break;
                 }
 
                 case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_DOWN when e.button.button == 1:
+                    (_pressed, _dragging, _pressX, _pressY) = (true, false, e.button.x, e.button.y);
+                    break;
+
+                case SDL_EventType.SDL_EVENT_MOUSE_MOTION when _pressed && !_showInfo:
                 {
-                    // a click puts the details away; otherwise, a click on the left half goes back
-                    // and on the right half forward, as Page Up and Page Down do
-                    if (_showInfo)
+                    // past a few points from where it went down, the button is dragging the page
+                    if (!_dragging && MathF.Abs(e.motion.x - _pressX) + MathF.Abs(e.motion.y - _pressY) >= DragDistance)
                     {
-                        ToggleInfo();
-                        break;
+                        _dragging = true;
+                        SDL_SetCursor(_moveCursor);
                     }
 
-                    int width;
-                    SDL_GetWindowSize(_window, &width, null);
-                    Show(e.button.x < width / 2f ? _reading.ScreenBack(CurrentFrame()) : _reading.ScreenForward(CurrentFrame()));
+                    if (_dragging)
+                    {
+                        float density = Density();
+                        Show(_reading.Pan(CurrentFrame(), -e.motion.xrel * density, -e.motion.yrel * density));
+                    }
+
+                    break;
+                }
+
+                case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_UP when e.button.button == 1 && _pressed:
+                {
+                    bool clicked = !_dragging;
+                    if (_dragging)
+                    {
+                        SDL_SetCursor(SDL_GetDefaultCursor());
+                    }
+
+                    (_pressed, _dragging) = (false, false);
+                    if (clicked)
+                    {
+                        Click(e.button.x);
+                    }
+
                     break;
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// A click, which is a press and a release with no drag between: it puts the details away;
+    /// otherwise, on the left half of the window it goes back and on the right half forward, as
+    /// Page Up and Page Down do.
+    /// </summary>
+    private void Click(float x)
+    {
+        if (_showInfo)
+        {
+            ToggleInfo();
+            return;
+        }
+
+        int width;
+        SDL_GetWindowSize(_window, &width, null);
+        Show(x < width / 2f ? _reading.ScreenBack(CurrentFrame()) : _reading.ScreenForward(CurrentFrame()));
+    }
+
+    /// <summary>Zooms by the factor, keeping the page under the point (in the renderer's pixels) where it is.</summary>
+    private void ZoomAt(double factor, float x, float y)
+    {
+        if (_reading.View.ZoomBy(CurrentFrame(), factor, x, y))
+        {
+            ShowTitle();
+            Draw();
+        }
+    }
+
+    /// <summary>Zooms at the middle of the window, as the keys do.</summary>
+    private void ZoomAtMiddle(double factor)
+    {
+        var frame = CurrentFrame();
+        ZoomAt(factor, frame.AreaWidth / 2, frame.AreaHeight / 2);
+    }
+
+    /// <summary>The renderer's pixels to each of the window's points: 2 on most high density displays.</summary>
+    private float Density()
+    {
+        float density = SDL_GetWindowPixelDensity(_window);
+        return density > 0 ? density : 1;
     }
 
     /// <summary>Acts on a key, which may be repeating from being held; returns false when the reader asked to quit.</summary>
@@ -118,7 +208,27 @@ internal sealed unsafe class ComicWindow : IDisposable
                 break;
 
             case SDL_Keycode.SDLK_W:
-                _reading.View.Fit = _reading.View.Fit == Fit.Page ? Fit.Width : Fit.Page;
+                // fitted to the width, W fits the page whole; fitted whole or zoomed, to the width
+                _reading.View.Fit = _reading.View.Fit == Fit.Width ? Fit.Page : Fit.Width;
+                ShowTitle();
+                Draw();
+                break;
+
+            // + is = with Shift on most keyboards, so = zooms in too, Shift or not
+            case SDL_Keycode.SDLK_EQUALS:
+            case SDL_Keycode.SDLK_PLUS:
+            case SDL_Keycode.SDLK_KP_PLUS:
+                ZoomAtMiddle(ZoomStep);
+                break;
+
+            case SDL_Keycode.SDLK_MINUS:
+            case SDL_Keycode.SDLK_KP_MINUS:
+                ZoomAtMiddle(1 / ZoomStep);
+                break;
+
+            case SDL_Keycode.SDLK_0:
+            case SDL_Keycode.SDLK_KP_0:
+                _reading.View.Fit = Fit.Page;
                 ShowTitle();
                 Draw();
                 break;
@@ -141,10 +251,13 @@ internal sealed unsafe class ComicWindow : IDisposable
                 break;
 
             case SDL_Keycode.SDLK_RIGHT:
-                Show(_reading.NextPage());
+                Show(_reading.StepRight(CurrentFrame(), repeat));
                 break;
 
             case SDL_Keycode.SDLK_LEFT:
+                Show(_reading.StepLeft(CurrentFrame(), repeat));
+                break;
+
             case SDL_Keycode.SDLK_BACKSPACE:
                 Show(_reading.PreviousPage());
                 break;
@@ -173,8 +286,14 @@ internal sealed unsafe class ComicWindow : IDisposable
         Draw();
     }
 
-    /// <summary>A turn of the mouse wheel scrolls this share of the window's height.</summary>
+    /// <summary>A turn of the mouse wheel scrolls this share of the window's height (or width, across).</summary>
     private const float WheelStep = 0.05f;
+
+    /// <summary>A press of + or −, or a turn of the wheel with Ctrl, zooms by this much.</summary>
+    private const double ZoomStep = 1.25;
+
+    /// <summary>How far, in points, the button moves while down before it is a drag and not a click.</summary>
+    private const float DragDistance = 4;
 
     /// <summary>Shows what the reader's action did: another page, or another part of this one.</summary>
     private void Show(Moved moved)
@@ -206,7 +325,12 @@ internal sealed unsafe class ComicWindow : IDisposable
 
     private void ShowTitle()
     {
-        string fit = _reading.View.Fit == Fit.Width ? ", fit to width" : "";
+        string fit = _reading.View.Fit switch
+        {
+            Fit.Width => ", fit to width",
+            Fit.Zoom => $", {Math.Round(_reading.View.Zoom * 100)}%",
+            _ => "",
+        };
         SDL_SetWindowTitle(_window, $"{_comic.Heading}  ({_reading.Turner.Current + 1} of {_comic.PageCount}{fit})");
     }
 
@@ -347,6 +471,12 @@ internal sealed unsafe class ComicWindow : IDisposable
         {
             SDL_DestroyTexture(_page);
             _page = null;
+        }
+
+        if (_moveCursor is not null)
+        {
+            SDL_DestroyCursor(_moveCursor);
+            _moveCursor = null;
         }
 
         // the text is drawn by the renderer, and so goes before it
