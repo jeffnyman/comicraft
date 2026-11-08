@@ -5,9 +5,10 @@ internal static class Comic
 {
     /// <summary>
     /// The one comic left among the arguments, once the command has taken its options: an error
-    /// for anything else that looks like an option, for none, or for more than one.
+    /// for anything else that looks like an option, for none, or for more than one. Where the
+    /// command takes a folder of comics, as convert does, it may be a folder.
     /// </summary>
-    public static string Path(List<string> arguments)
+    public static string Path(List<string> arguments, bool orFolder = false)
     {
         if (arguments.FirstOrDefault(a => a.StartsWith('-')) is { } unknown)
         {
@@ -18,7 +19,9 @@ internal static class Comic
         {
             0 => throw new UsageException("no comic given."),
             > 1 => throw new UsageException("give one comic at a time."),
-            _ => File.Exists(arguments[0]) ? arguments[0] : throw new FileNotFoundException($"'{arguments[0]}' was not found."),
+            _ => File.Exists(arguments[0]) || (orFolder && Directory.Exists(arguments[0]))
+                ? arguments[0]
+                : throw new FileNotFoundException($"'{arguments[0]}' was not found."),
         };
     }
 }

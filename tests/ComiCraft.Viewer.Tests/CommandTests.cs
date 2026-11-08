@@ -340,6 +340,130 @@ public sealed class CommandTests : IDisposable
         Assert.Equal(["troll.cbz", "troll.pdf"], Files());
     }
 
+    private int ConvertFolder(Terminal terminal, params string[] options) =>
+        ConvertCommand.Run([_folder, .. options], terminal, _trash, _ => throw new InvalidOperationException("not an image"));
+
+    [Fact]
+    public void A_folders_cbrs_are_converted_asking_once_about_the_originals()
+    {
+        Cbr("b.cbr");
+        Cbr("a.cbr");
+        Cbz("c.cbz");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal("yes")));
+
+        Assert.Equal(
+            $"2 comics in {Path.GetFileName(_folder)} to convert to CBZs.\n" +
+            "Move each original to the Trash once it is converted and checked? [y/N] " +
+            "[1/2] Converted a.cbr to a.cbz (2 pages).\nMoved a.cbr to the Trash.\n" +
+            "[2/2] Converted b.cbr to b.cbz (2 pages).\nMoved b.cbr to the Trash.\n" +
+            "Converted 2 of 2; moved 2 originals to the Trash.\n",
+            Output);
+        Assert.Equal(["a.cbz", "b.cbz", "c.cbz"], Files());
+    }
+
+    [Fact]
+    public void A_folders_cbrs_and_cbzs_are_converted_to_pdfs()
+    {
+        Pictured("a.cbz");
+        Pictured("b.CBZ");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal(), "--format", "pdf", "--keep-original"));
+
+        Assert.Equal(["a.cbz", "a.pdf", "b.CBZ", "b.pdf"], Files());
+    }
+
+    [Fact]
+    public void A_comic_already_converted_is_skipped()
+    {
+        Cbr("a.cbr");
+        Cbr("b.cbr");
+        File.WriteAllText(Path.Combine(_folder, "a.cbz"), "someone's file");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal(), "--delete-original"));
+
+        Assert.Contains("[1/2] Skipped a.cbr: a.cbz is already there.\n", Output);
+        Assert.Contains("Converted 1 of 2; skipped 1, already converted; moved 1 original to the Trash.\n", Output);
+        Assert.Equal("someone's file", File.ReadAllText(Path.Combine(_folder, "a.cbz")));
+        Assert.Equal(["a.cbr", "a.cbz", "b.cbz"], Files());
+    }
+
+    [Fact]
+    public void A_comic_that_cannot_be_converted_is_reported_and_the_rest_go_on()
+    {
+        Pictured("a.cbz");
+        Cbz("b.cbz"); // its pages are not images
+        Pictured("c.cbz");
+
+        Assert.Equal(Exit.CannotRun, ConvertFolder(Terminal(), "--format", "pdf", "--delete-original"));
+
+        Assert.Contains("[2/3] b.cbz could not be converted: page 1 (1.jpg) cannot be put in a PDF: not an image", Errors);
+        Assert.Contains("Converted 2 of 3; 1 could not be; moved 2 originals to the Trash.\n", Output);
+        Assert.Equal(["a.pdf", "b.cbz", "c.pdf"], Files());
+    }
+
+    [Fact]
+    public void Run_from_a_script_a_folders_originals_are_kept_and_it_says_how_not_to()
+    {
+        Cbr("a.cbr");
+
+        ConvertFolder(Terminal(null));
+
+        Assert.DoesNotContain("[y/N]", Output);
+        Assert.EndsWith("Converted 1 of 1.\nKept the originals; give --delete-original to move them to the Trash.\n", Output);
+        Assert.Equal(["a.cbr", "a.cbz"], Files());
+    }
+
+    [Fact]
+    public void In_a_folder_an_original_the_trash_will_not_take_is_kept_without_asking()
+    {
+        Cbr("a.cbr");
+        Cbr("b.cbr");
+        var refusing = new FakeTrash(Path.Combine(_folder, ".trash"), refusal: "the drive has no Trash");
+
+        // the one answer is to the one question; were another asked, it would be answered no
+        Assert.Equal(Exit.Done, ConvertCommand.Run([_folder], Terminal("yes"), refusing));
+
+        Assert.DoesNotContain("permanently instead", Output);
+        Assert.Contains("a.cbr could not be moved to the Trash: the drive has no Trash", Errors);
+        Assert.Equal(["a.cbr", "a.cbz", "b.cbr", "b.cbz"], Files());
+    }
+
+    [Fact]
+    public void Recursive_goes_into_the_folders_in_it_but_not_hidden_ones()
+    {
+        Directory.CreateDirectory(Path.Combine(_folder, "Volume 2"));
+        Directory.CreateDirectory(Path.Combine(_folder, ".Trash-1000"));
+        Cbr("a.cbr");
+        Cbr(Path.Combine("Volume 2", "b.cbr"));
+        Cbr(Path.Combine(".Trash-1000", "c.cbr"));
+
+        ConvertFolder(Terminal(), "--recursive");
+
+        Assert.Contains($"[2/2] Converted {Path.Combine("Volume 2", "b.cbr")} to b.cbz (2 pages).", Output);
+        Assert.True(File.Exists(Path.Combine(_folder, "Volume 2", "b.cbz")));
+        Assert.False(File.Exists(Path.Combine(_folder, ".Trash-1000", "c.cbz")));
+    }
+
+    [Fact]
+    public void Without_recursive_the_folders_in_it_are_left_alone()
+    {
+        Directory.CreateDirectory(Path.Combine(_folder, "Volume 2"));
+        Cbr(Path.Combine("Volume 2", "b.cbr"));
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal()));
+
+        Assert.Equal($"There are no CBRs in {Path.GetFileName(_folder)} to convert.\n", Output);
+        Assert.False(File.Exists(Path.Combine(_folder, "Volume 2", "b.cbz")));
+    }
+
+    [Fact]
+    public void To_is_for_one_comic_and_recursive_for_a_folder()
+    {
+        Assert.Throws<UsageException>(() => ConvertFolder(Terminal(), "--to", "x.cbz"));
+        Assert.Throws<UsageException>(() => ConvertCommand.Run([Cbr(), "--recursive"], Terminal(), _trash));
+    }
+
     [Fact]
     public void Delete_and_keep_cannot_both_be_given()
     {

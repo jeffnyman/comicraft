@@ -138,13 +138,33 @@ Before the original goes, the PDF is read back by [PdfPig](https://github.com/Ug
 reader of PDFs that is not ComiCraft's own: it must have as many pages, each with one image, whose
 data is the data that was written.
 
+### A folder of comics
+
+Given a folder, `convert` converts every comic in it: every CBR to a CBZ, or, with
+`--format pdf`, every CBR and CBZ to a PDF, each beside itself. `--recursive` takes in the folders
+in it as well, passing over hidden ones (a Trash is one) and links to folders.
+
+```
+comicraft convert ~/Comics/Troll
+comicraft convert ~/Comics --format pdf --recursive
+```
+
+What becomes of the originals is asked once, before any comic is converted, so the rest needs no
+one there; each original is still checked before it goes, and one the Trash will not take is kept,
+not asked about. A comic whose CBZ or PDF is already there is skipped. One that cannot be converted
+is reported, and the rest go on. Each is numbered as it is done (`[3/40]`), and a line at the end
+says how many were converted, skipped or could not be. Ctrl+C stops once the comic being
+converted is done, and a second Ctrl+C stops at once. ComiCraft exits with 3 when a comic could not
+be converted or the conversion was stopped, and with 0 otherwise.
+
 | Option | What it does |
 |---|---|
 | `--convert` | Converts a CBR to change it, without asking. (`tag`) |
 | `--delete-original` | Moves the original to the Trash after converting, without asking. |
 | `--keep-original` | Keeps the original after converting, without asking. |
 | `--format cbz \| pdf` | What a conversion makes: a CBZ, which it makes unless told, or a PDF. (`convert`) |
-| `--to <file>` | Names what a conversion makes. (`convert`) |
+| `--to <file>` | Names what a conversion makes, for one comic. (`convert`) |
+| `--recursive` | Converts the comics in the folders in a folder too. (`convert`) |
 
 Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
 without `--convert`, an original is kept without `--delete-original`, and an original the Trash
@@ -176,7 +196,7 @@ dotnet build ComiCraft.slnx
 dotnet test ComiCraft.slnx
 dotnet run --project src/ComiCraft.Viewer -- <comic> [--fullscreen]
 dotnet run --project src/ComiCraft.Viewer -- tag <comic> [--<field> <value>...]
-dotnet run --project src/ComiCraft.Viewer -- convert <comic> [--format pdf]
+dotnet run --project src/ComiCraft.Viewer -- convert <comic | folder> [--format pdf] [--recursive]
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```
 
