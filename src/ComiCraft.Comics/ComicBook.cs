@@ -95,7 +95,7 @@ public sealed class ComicBook
             return PdfComic.Read(whole.ToArray(), name);
         }
 
-        using var archive = ArchiveFactory.OpenArchive(stream);
+        using var archive = ComicArchive.OpenArchive(stream);
         var pages = new List<(string Name, byte[] Image)>();
         ComicInfo? info = null;
 

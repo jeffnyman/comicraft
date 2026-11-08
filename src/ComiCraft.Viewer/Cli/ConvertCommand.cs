@@ -12,7 +12,8 @@ internal static class ConvertCommand
 {
     public const string Usage = """
         Usage: comicraft convert <comic> [--format cbz | pdf] [--to <file>] [--delete-original | --keep-original]
-               comicraft convert <folder> [--format cbz | pdf] [--recursive] [--delete-original | --keep-original]
+               comicraft convert <folder> [--format cbz | pdf] [--from <kinds>] [--recursive]
+                                          [--delete-original | --keep-original]
 
         Makes a CBZ of the comic, or, with --format pdf, a PDF, beside it by the same name, or at
         the file --to names; a --to that ends in .pdf makes a PDF without --format. An existing
@@ -25,9 +26,11 @@ internal static class ConvertCommand
         they are, with its ComicInfo.xml.
 
         Given a folder, converts every CBR in it to a CBZ, or, with --format pdf, every CBR and
-        CBZ to a PDF, each beside itself; with --recursive, those in the folders in it too. A
-        comic whose CBZ or PDF is already there is skipped, and one that cannot be converted is
-        reported, and the rest go on. Ctrl+C stops once the comic being converted is done.
+        CBZ to a PDF, each beside itself; with --recursive, those in the folders in it too.
+        --from says which kinds to convert instead: cbr, cbz or pdf, or more than one, as in
+        --from cbr,pdf; so --from pdf converts every PDF to a CBZ. A comic whose CBZ or PDF is
+        already there is skipped, and one that cannot be converted is reported, and the rest go
+        on. Ctrl+C stops once the comic being converted is done.
 
         Afterwards, you are asked whether to move the original to the Trash (for a folder, once,
         before any is converted); the answer is no unless it is yes. --delete-original and
@@ -37,6 +40,9 @@ internal static class ConvertCommand
         """;
 
     private enum Format { Cbz, Pdf }
+
+    /// <summary>The kinds of comic a folder's comics can be converted from, by the name --from gives them.</summary>
+    private static readonly string[] Kinds = ["cbr", "cbz", "pdf"];
 
     /// <summary>What a conversion made: where, how many pages it has, and how to check it has the original's.</summary>
     private readonly record struct Made(string Path, int Pages, Func<bool>? SamePages);
@@ -54,6 +60,7 @@ internal static class ConvertCommand
         bool recursive = options.Remove("--recursive");
         string? target = Take(options, "--to", "the name of the file to make");
         var format = FormatOf(Take(options, "--format", "cbz or pdf"), target);
+        string? fromKinds = Take(options, "--from", "the kinds of comic to convert, such as cbr or pdf");
         string path = Comic.Path(options, orFolder: true);
         decode ??= PageDecoder.Decode;
 
@@ -64,12 +71,17 @@ internal static class ConvertCommand
                 throw new UsageException("--to names one file; a folder's comics are each converted beside themselves.");
             }
 
-            return Folder(path, format, recursive, original, terminal, trash, decode);
+            return Folder(path, format, FromOf(fromKinds, format), recursive, original, terminal, trash, decode);
         }
 
         if (recursive)
         {
             throw new UsageException("--recursive is for converting a folder.");
+        }
+
+        if (fromKinds is not null)
+        {
+            throw new UsageException("--from is for converting a folder; a comic is converted from whatever it is.");
         }
 
         var made = Make(path, target, format, decode);
@@ -106,15 +118,15 @@ internal static class ConvertCommand
     /// when recursive), one after another. What becomes of the originals is asked once, before any
     /// is converted, so that the rest needs no one there.
     /// </summary>
-    private static int Folder(string folder, Format format, bool recursive, Original original, Terminal terminal, ITrash trash, Func<ReadOnlyMemory<byte>, Pixels> decode)
+    private static int Folder(string folder, Format format, IReadOnlyList<string> from, bool recursive, Original original, Terminal terminal, ITrash trash, Func<ReadOnlyMemory<byte>, Pixels> decode)
     {
-        string[] from = format == Format.Pdf ? [".cbr", ".cbz"] : [".cbr"];
         string to = format == Format.Pdf ? ".pdf" : ".cbz";
-        string kinds = format == Format.Pdf ? "CBRs or CBZs" : "CBRs";
+        var plural = from.Select(k => k.ToUpperInvariant() + "s").ToList();
+        string kinds = plural.Count == 1 ? plural[0] : $"{string.Join(", ", plural[..^1])} or {plural[^1]}";
         string made = format == Format.Pdf ? "PDFs" : "CBZs";
         string where = System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(folder)));
 
-        var comics = ComicsIn(folder, from, recursive);
+        var comics = ComicsIn(folder, [.. from.Select(k => "." + k)], recursive);
         if (comics.Count == 0)
         {
             terminal.Out.WriteLine($"There are no {kinds} in {where}{(recursive ? " or the folders in it" : "")} to convert.");
@@ -289,6 +301,38 @@ internal static class ConvertCommand
         }
 
         return given ?? named ?? Format.Cbz;
+    }
+
+    /// <summary>
+    /// The kinds of comic a folder's comics are converted from: as --from says, in the order of
+    /// <see cref="Kinds"/>, or, without it, every CBR for a CBZ, and every CBR and CBZ for a PDF.
+    /// None can be the kind being made.
+    /// </summary>
+    private static List<string> FromOf(string? asked, Format format)
+    {
+        string made = format.ToString().ToLowerInvariant();
+        if (asked is null)
+        {
+            return format == Format.Pdf ? ["cbr", "cbz"] : ["cbr"];
+        }
+
+        var named = asked.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(k => k.ToLowerInvariant()).ToList();
+        if (named.Count == 0)
+        {
+            throw new UsageException("--from needs the kinds of comic to convert: cbr, cbz or pdf.");
+        }
+
+        if (named.FirstOrDefault(k => !Kinds.Contains(k)) is { } unknown)
+        {
+            throw new UsageException($"--from takes cbr, cbz or pdf, not '{unknown}'.");
+        }
+
+        if (named.Contains(made))
+        {
+            throw new UsageException($"a {made.ToUpperInvariant()} is not converted to a {made.ToUpperInvariant()}; --from {made} needs --format {(format == Format.Pdf ? "cbz" : "pdf")}.");
+        }
+
+        return [.. Kinds.Where(named.Contains)];
     }
 
     /// <summary>The value of an option given as --option value or --option=value, taken out of the options; null when it is not given.</summary>

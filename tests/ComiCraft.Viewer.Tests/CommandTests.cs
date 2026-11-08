@@ -470,6 +470,96 @@ public sealed class CommandTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_folder, "Volume 2", "b.cbz")));
     }
 
+    /// <summary>A PDF of a comic, made from a CBZ that is then gone.</summary>
+    private string Pdf(string name)
+    {
+        string cbz = Pictured(Path.ChangeExtension(name, ".cbz"));
+        ConvertCommand.Run([cbz, "--format", "pdf", "--delete-original"], Terminal(), new FakeTrash(Path.Combine(_folder, ".made")));
+        Directory.Delete(Path.Combine(_folder, ".made"), recursive: true);
+        _out.GetStringBuilder().Clear();
+        return Path.Combine(_folder, name);
+    }
+
+    [Fact]
+    public void A_folders_pdfs_are_converted_to_cbzs_from_pdf()
+    {
+        Pdf("b.pdf");
+        Pdf("a.pdf");
+        Cbr("c.cbr");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal("yes"), "--from", "pdf"));
+
+        Assert.Equal(
+            $"2 comics in {Path.GetFileName(_folder)} to convert to CBZs.\n" +
+            "Move each original to the Trash once it is converted and checked? [y/N] " +
+            "[1/2] Converted a.pdf to a.cbz (2 pages).\nMoved a.pdf to the Trash.\n" +
+            "[2/2] Converted b.pdf to b.cbz (2 pages).\nMoved b.pdf to the Trash.\n" +
+            "Converted 2 of 2; moved 2 originals to the Trash.\n",
+            Output);
+        Assert.Equal(["a.cbz", "b.cbz", "c.cbr"], Files());
+        Assert.Equal(["Page 001.jpg", "Page 002.jpg"], ComicBook.Open(Path.Combine(_folder, "a.cbz")).PageNames);
+    }
+
+    [Fact]
+    public void From_takes_more_than_one_kind()
+    {
+        Pdf("a.pdf");
+        Cbr("b.cbr");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal(), "--from=PDF, cbr", "--keep-original"));
+
+        Assert.Equal(["a.cbz", "a.pdf", "b.cbr", "b.cbz"], Files());
+    }
+
+    [Fact]
+    public void A_pdf_that_is_not_a_comic_is_reported_and_kept()
+    {
+        Pdf("a.pdf");
+        File.WriteAllText(Path.Combine(_folder, "b.pdf"), "not a PDF at all");
+
+        Assert.Equal(Exit.CannotRun, ConvertFolder(Terminal(), "--from", "pdf", "--delete-original"));
+
+        Assert.Contains("[2/2] b.pdf could not be converted: ", Errors);
+        Assert.Equal(["a.cbz", "b.pdf"], Files());
+    }
+
+    [Fact]
+    public void Without_from_a_folders_pdfs_are_left_alone()
+    {
+        Pdf("a.pdf");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal()));
+
+        Assert.Equal($"There are no CBRs in {Path.GetFileName(_folder)} to convert.\n", Output);
+    }
+
+    [Fact]
+    public void From_says_so_when_there_are_none_of_its_kinds()
+    {
+        Cbz("a.cbz");
+
+        Assert.Equal(Exit.Done, ConvertFolder(Terminal(), "--from", "pdf,cbr"));
+
+        Assert.Equal($"There are no CBRs or PDFs in {Path.GetFileName(_folder)} to convert.\n", Output);
+    }
+
+    [Theory]
+    [InlineData("--from", "cbz")]
+    [InlineData("--from", "pdf", "--format", "pdf")]
+    [InlineData("--from", "epub")]
+    [InlineData("--from", ",")]
+    [InlineData("--from")]
+    public void From_refuses_what_it_cannot_convert(params string[] options)
+    {
+        Assert.Throws<UsageException>(() => ConvertFolder(Terminal(), options));
+    }
+
+    [Fact]
+    public void From_is_for_a_folder()
+    {
+        Assert.Throws<UsageException>(() => ConvertCommand.Run([Cbr(), "--from", "cbr"], Terminal(), _trash));
+    }
+
     [Fact]
     public void To_is_for_one_comic_and_recursive_for_a_folder()
     {

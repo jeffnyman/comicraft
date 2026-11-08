@@ -6,6 +6,14 @@ namespace ComiCraft.Comics.Tests;
 public class ComicBookTests
 {
     [Fact]
+    public void A_file_that_is_no_comic_at_all_says_so_plainly()
+    {
+        var error = Assert.Throws<InvalidDataException>(() => ComicBook.Open(new MemoryStream("hello, not a comic"u8.ToArray()), "notes.pdf"));
+
+        Assert.Equal("it is not a CBZ, CBR, CB7 or PDF; it does not start as any of them does.", error.Message);
+    }
+
+    [Fact]
     public void Pages_are_the_images_in_natural_order()
     {
         using var cbz = TestComics.Cbz("10.jpg", "ComicInfo.xml", "2.png", "1.jpeg", "notes.txt");

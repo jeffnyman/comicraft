@@ -210,12 +210,17 @@ data is the data that was written.
 ### A folder of comics
 
 Given a folder, `convert` converts every comic in it: every CBR to a CBZ, or, with
-`--format pdf`, every CBR and CBZ to a PDF, each beside itself. `--recursive` takes in the folders
-in it as well, passing over hidden ones (a Trash is one) and links to folders.
+`--format pdf`, every CBR and CBZ to a PDF, each beside itself. `--from` says which kinds to
+convert instead (`cbr`, `cbz` or `pdf`, or more than one, as `cbr,pdf`), so `--from pdf` converts
+every PDF to a CBZ. A PDF is only converted when asked for, as a folder's PDFs may not be comics;
+one that is not is reported and kept. `--recursive` takes in the folders in it as well, passing
+over hidden ones (a Trash is one) and links to folders.
 
 ```
 comicraft convert ~/Comics/Troll
 comicraft convert ~/Comics --format pdf --recursive
+comicraft convert ~/Comics --from pdf --recursive
+comicraft convert ~/Comics --from cbr,pdf
 ```
 
 What becomes of the originals is asked once, before any comic is converted, so the rest needs no
@@ -233,6 +238,7 @@ be converted or the conversion was stopped, and with 0 otherwise.
 | `--keep-original` | Keeps the original after converting, without asking. |
 | `--format cbz \| pdf` | What a conversion makes: a CBZ, which it makes unless told, or a PDF. (`convert`) |
 | `--to <file>` | Names what a conversion makes, for one comic. (`convert`) |
+| `--from <kinds>` | Which kinds of comic in a folder to convert: `cbr`, `cbz` or `pdf`, or more than one, as `cbr,pdf`. (`convert`) |
 | `--recursive` | Converts the comics in the folders in a folder too. (`convert`) |
 
 Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
@@ -265,7 +271,7 @@ dotnet build ComiCraft.slnx
 dotnet test ComiCraft.slnx
 dotnet run --project src/ComiCraft.Viewer -- <comic> [--fullscreen]
 dotnet run --project src/ComiCraft.Viewer -- tag <comic> [--<field> <value>...]
-dotnet run --project src/ComiCraft.Viewer -- convert <comic | folder> [--format pdf] [--recursive]
+dotnet run --project src/ComiCraft.Viewer -- convert <comic | folder> [--format pdf] [--from pdf] [--recursive]
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```
 

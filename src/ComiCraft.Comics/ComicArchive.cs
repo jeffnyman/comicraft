@@ -41,6 +41,37 @@ public static class ComicArchive
         return KindOf(start[..read]);
     }
 
+    /// <summary>The archive in the stream, which is left open; one of no kind ComiCraft knows says so plainly.</summary>
+    internal static IArchive OpenArchive(Stream stream)
+    {
+        var kind = ArchiveKind.Zip;
+        if (stream.CanSeek)
+        {
+            long at = stream.Position;
+            Span<byte> start = stackalloc byte[8];
+            kind = KindOf(start[..stream.ReadAtLeast(start, start.Length, throwOnEndOfStream: false)]);
+            stream.Position = at;
+        }
+
+        return Unknowable(() => ArchiveFactory.OpenArchive(stream), () => kind);
+    }
+
+    /// <summary>
+    /// Opens an archive; when it cannot be, and its file starts as no comic does, says that, rather
+    /// than what the library that reads archives says, which names the kinds it reads, not ComiCraft's.
+    /// </summary>
+    private static IArchive Unknowable(Func<IArchive> open, Func<ArchiveKind> kind)
+    {
+        try
+        {
+            return open();
+        }
+        catch (Exception ex) when (ex is not IOException and not UnauthorizedAccessException and not OutOfMemoryException && kind() == ArchiveKind.Unknown)
+        {
+            throw new InvalidDataException("it is not a CBZ, CBR, CB7 or PDF; it does not start as any of them does.", ex);
+        }
+    }
+
     internal static ArchiveKind KindOf(ReadOnlySpan<byte> start) => start switch
     {
         // a zip starts with a file's header, or, when it is empty, the end of its directory
@@ -256,7 +287,7 @@ public static class ComicArchive
         try
         {
             // opened by its path, the archive has the file to itself, and closes it when it is done
-            return ArchiveFactory.OpenArchive(path);
+            return Unknowable(() => ArchiveFactory.OpenArchive(path), () => KindOf(path));
         }
         catch (Exception ex) when (ex is not IOException and not UnauthorizedAccessException)
         {
