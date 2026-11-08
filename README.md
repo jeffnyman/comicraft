@@ -23,7 +23,8 @@ ComiCraft attaches one, gives the comic's details.
 ## Reading
 
 `comicraft <comic>` opens the comic in a window the shape of its first page, or, when you have
-read it before, where you left it (see [Where you were](#where-you-were)).
+read it before, where you left it (see [Where you were](#where-you-were)). `comicraft <folder>`
+shows the comics in the folder, to choose one (see [The comics in a folder](#the-comics-in-a-folder)).
 `comicraft --help` lists the keys.
 
 | Option | What it does |
@@ -69,6 +70,7 @@ than the window, there is nothing to go across, and Space simply goes down.
 | +, − | Zooms in, or out, at the middle of the window. (= zooms in too, so Shift is not needed.) |
 | 0 | Fits the whole page again. |
 | I | Shows the comic's details, or puts them away. |
+| L, Tab | Shows the comics in the folder, or puts them away. |
 | F, F11 | Switches between a window and the full screen. |
 | Escape | Puts the details away when they are showing; quits otherwise. |
 | Q | Quits. |
@@ -105,6 +107,36 @@ the title bar comes from the same place, such as *Operation: Knightstrike #3 –
 All of this comes from the comic's `ComicInfo.xml`, the metadata file begun by ComicRack and kept
 now by the [Anansi Project](https://anansi-project.github.io/docs/comicinfo/intro). Comics without
 one, or with one that cannot be read, still open, and show their file name and their pages.
+
+### The comics in a folder
+
+**L** (or Tab) shows the comics in the folder of the comic being read, in a panel down the left of
+the window, to open another in its place, as the files of a project are shown beside the code in
+an editor. Given a folder, `comicraft` opens with them showing.
+
+```
+comicraft ~/Comics/Troll
+```
+
+The folder above comes first, then the folders in it, then its comics (CBZ, CBR, CB7 and PDF),
+each in the order a reader expects, so that issue 2 comes before issue 10. Hidden files and
+folders, and anything that is not a comic, are left out. The comic being read is in gold.
+
+| Key or mouse | What it does |
+|---|---|
+| Down, Up | Chooses the next entry, or the one before. |
+| Page Down, Page Up, Home, End | Chooses an entry a screen on or back, or the first or last. |
+| Enter, Right | Opens the comic chosen, or goes into the folder. |
+| Left, Backspace | Goes to the folder above. |
+| Click | Opens the comic clicked, or goes into the folder. |
+| Wheel | Scrolls the list. |
+| Click beside the list | Puts it away. |
+| L, Tab, Escape | Puts it away. With no comic open, Escape quits. |
+
+A comic opened from the list opens where you left it, as one opened by name does, and the one it
+replaces is remembered where you were in it. The window keeps its size, and the new comic is
+fitted to it. A comic that cannot be opened says why at the foot of the list, and the one being
+read stays open.
 
 ### Where you were
 
@@ -250,7 +282,7 @@ will not take is kept.
 | Path | What it is |
 |---|---|
 | `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the `tag`, `convert` and `forget` commands (`Cli`), where you were in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the comics in a folder (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), where you were in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
 | `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig, and PDFs made by hand of pages that are pictures and pages that are not. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
 

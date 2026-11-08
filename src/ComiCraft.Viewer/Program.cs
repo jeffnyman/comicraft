@@ -38,7 +38,7 @@ internal static class Program
         }
     }
 
-    /// <summary>comicraft &lt;comic&gt;: the comic, in a window.</summary>
+    /// <summary>comicraft &lt;comic | folder&gt;: the comic, in a window, with its folder's comics a key away; or a folder's comics, to choose one.</summary>
     private static int View(string[] args)
     {
         var options = args.ToList();
@@ -49,7 +49,11 @@ internal static class Program
         }
 
         bool fullscreen = options.Remove("--fullscreen");
-        string path = Comic.Path(options);
+        string path = Comic.Path(options, orFolder: true);
+        if (Directory.Exists(path))
+        {
+            return Show(null, null, path, fullscreen);
+        }
 
         ComicBook comic;
         try
@@ -68,9 +72,14 @@ internal static class Program
             return Exit.CannotRun;
         }
 
+        return Show(comic, path, Path.GetDirectoryName(Path.GetFullPath(path))!, fullscreen);
+    }
+
+    private static int Show(ComicBook? comic, string? path, string folder, bool fullscreen)
+    {
         try
         {
-            using var window = new ComicWindow(comic, path, fullscreen, ReadingPlaces.ForThisUser());
+            using var window = new ComicWindow(comic, path, folder, fullscreen, ReadingPlaces.ForThisUser());
             window.Run();
         }
         catch (SdlException ex)
@@ -83,12 +92,13 @@ internal static class Program
     }
 
     private const string Usage = """
-        Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr | comic.pdf>
+        Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr | comic.pdf | folder>
                comicraft tag <comic> [--<field> <value>...]         its ComicInfo.xml
                comicraft convert <comic | folder> [--format pdf]    a CBZ or PDF of it
                comicraft forget <comic> | --all                     where you were in it
 
         A comic opens where you left it, on its page, fitted and zoomed as it was.
+        Given a folder, ComiCraft shows the comics in it, to choose one to read.
         'comicraft tag --help', 'convert --help' and 'forget --help' say more.
 
         Keys:
@@ -102,6 +112,7 @@ internal static class Program
           +, -  (or =)          zoom in, zoom out
           0                     the whole page again
           I                     comic details on and off
+          L, Tab                the comics in the folder on and off
           F, F11                full screen on and off
           Escape                put details away, or quit
           Q                     quit
@@ -114,5 +125,10 @@ internal static class Program
 
         A page larger than the window is read across, then down. Where a page fits
         the window, every key that goes on or back turns a page.
+
+        In the comics in the folder, Up and Down (and Page Up, Page Down, Home and
+        End) choose one; Enter or Right opens it, or goes into a folder, and Left or
+        Backspace goes up a folder. A click opens what it is on. L, Tab or Escape
+        puts them away, and the comic being read is shown in gold.
         """;
 }
