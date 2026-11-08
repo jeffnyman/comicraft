@@ -2,5 +2,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ComiCraft.Comics.Tests" />
     <PackageReference Include="SharpCompress" />
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 </Project>

@@ -113,15 +113,38 @@ means to recycle the file, and stops it when it does not.
 
 On every system, an original the Trash will not take is only deleted permanently when you say so.
 
-`comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and asks the
-same about the original. `--to <file.cbz>` names the CBZ, and an existing file is never written over.
+## Converting a comic
+
+`comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and
+`comicraft convert <comic> --format pdf` converts it to a PDF. Either way, it then asks about the
+original as above, and it goes only once what was made has been read back and found to have its
+pages. `--to <file>` names what is made (a name ending in `.pdf` makes a PDF without `--format`),
+and an existing file is never written over.
+
+A PDF has a page for each of the comic's pages, in the same order, each the page's image and
+nothing else. Nothing is lost on the way. JPEG pages, and PNG pages, go in as they are, byte for
+byte, as a PDF can hold them. WebP, GIF and BMP pages, which it cannot, go in as their pixels,
+compressed without loss, as do the few PNGs and JPEGs a PDF cannot hold (a PNG with transparency
+keeps it). Every page is 10¼ inches high, a printed comic's height, and as wide as its shape makes
+it, so a page is about 6⅝ inches wide, as in print, and a spread twice that, however finely it was
+scanned.
+
+The comic's `ComicInfo.xml` gives the PDF its title (the heading, as the title bar shows it), its
+author (the writers), its subject (the summary) and its keywords (the genres), and goes in whole,
+as an attachment, so nothing in it is lost. Anything else in the archive, such as a scanner's note,
+has no place in a PDF and is left out. ComiCraft does not yet open PDFs itself.
+
+Before the original goes, the PDF is read back by [PdfPig](https://github.com/UglyToad/PdfPig), a
+reader of PDFs that is not ComiCraft's own: it must have as many pages, each with one image, whose
+data is the data that was written.
 
 | Option | What it does |
 |---|---|
 | `--convert` | Converts a CBR to change it, without asking. (`tag`) |
 | `--delete-original` | Moves the original to the Trash after converting, without asking. |
 | `--keep-original` | Keeps the original after converting, without asking. |
-| `--to <file.cbz>` | Names the CBZ a conversion makes. (`convert`) |
+| `--format cbz \| pdf` | What a conversion makes: a CBZ, which it makes unless told, or a PDF. (`convert`) |
+| `--to <file>` | Names what a conversion makes. (`convert`) |
 
 Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
 without `--convert`, an original is kept without `--delete-original`, and an original the Trash
@@ -131,13 +154,13 @@ will not take is kept.
 
 | Path | What it is |
 |---|---|
-| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), and the `tag` and `convert` commands (`Cli`). |
-| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics made in memory and on disk, CBRs among them. |
+| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs, and the details and text wrapping the viewer shows. |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the `tag` and `convert` commands (`Cli`), and moving originals to the Trash (`Platform`). |
+| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
 
 Beyond the .NET SDK, the dependencies are [SharpCompress](https://github.com/adamhathcock/sharpcompress)
-for the archives, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
+for the archives, PdfPig for reading back the PDFs ComiCraft makes, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
 (`ppy.SDL3_ttf-CS`) for the viewer's window, its pages and its text.
 
 The viewer's text is set in [Inter](https://rsms.me/inter/), by Rasmus Andersson, built into the
@@ -153,7 +176,7 @@ dotnet build ComiCraft.slnx
 dotnet test ComiCraft.slnx
 dotnet run --project src/ComiCraft.Viewer -- <comic> [--fullscreen]
 dotnet run --project src/ComiCraft.Viewer -- tag <comic> [--<field> <value>...]
-dotnet run --project src/ComiCraft.Viewer -- convert <comic>
+dotnet run --project src/ComiCraft.Viewer -- convert <comic> [--format pdf]
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```
 

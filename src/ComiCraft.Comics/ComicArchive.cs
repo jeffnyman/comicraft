@@ -52,7 +52,11 @@ public static class ComicArchive
     /// The comic's ComicInfo.xml, to edit, or null when it has none. One that cannot be read is an
     /// error, rather than nothing, so that it is never written over unseen.
     /// </summary>
-    public static ComicInfoDocument? ReadComicInfo(string path)
+    public static ComicInfoDocument? ReadComicInfo(string path) =>
+        ReadComicInfoBytes(path) is { } xml ? ComicInfoDocument.Load(new MemoryStream(xml)) : null;
+
+    /// <summary>The comic's ComicInfo.xml as it is in the archive, byte for byte; null when it has none.</summary>
+    internal static byte[]? ReadComicInfoBytes(string path)
     {
         using var archive = Open(path);
         if (archive.IsSolid)
@@ -63,7 +67,7 @@ public static class ComicArchive
                 if (IsComicInfo(reader.Entry))
                 {
                     using var stream = reader.OpenEntryStream();
-                    return ComicInfoDocument.Load(stream);
+                    return ReadAll(stream);
                 }
             }
 
@@ -77,7 +81,14 @@ public static class ComicArchive
         }
 
         using var entryStream = entry.OpenEntryStream();
-        return ComicInfoDocument.Load(entryStream);
+        return ReadAll(entryStream);
+    }
+
+    private static byte[] ReadAll(Stream stream)
+    {
+        using var bytes = new MemoryStream();
+        stream.CopyTo(bytes);
+        return bytes.ToArray();
     }
 
     /// <summary>
@@ -208,7 +219,7 @@ public static class ComicArchive
     /// file there, or, without <paramref name="overwrite"/>, only where there is none. When the
     /// writing fails, the copy is removed and nothing has changed.
     /// </summary>
-    private static void ReplaceSafely(string path, bool overwrite, Action<string> write)
+    internal static void ReplaceSafely(string path, bool overwrite, Action<string> write)
     {
         string folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
         string copy = Path.Combine(folder, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.comicraft");

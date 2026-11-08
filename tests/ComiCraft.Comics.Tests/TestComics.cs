@@ -85,7 +85,7 @@ internal static class TestComics
         rar.Write(bytes);
     }
 
-    private static uint Crc32(byte[] bytes)
+    internal static uint Crc32(byte[] bytes)
     {
         uint crc = 0xFFFFFFFF;
         foreach (byte b in bytes)
@@ -106,6 +106,20 @@ internal static class TestComics
         string path = Path.Combine(folder, name);
         using var file = File.Create(path);
         Cbz(entries).CopyTo(file);
+        return path;
+    }
+
+    /// <summary>Writes a zip with the given entries and their bytes to a file, and returns its path.</summary>
+    public static string CbzFile(string folder, string name, params (string Name, byte[] Bytes)[] entries)
+    {
+        string path = Path.Combine(folder, name);
+        using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
+        foreach (var (entryName, bytes) in entries)
+        {
+            using var entry = zip.CreateEntry(entryName).Open();
+            entry.Write(bytes);
+        }
+
         return path;
     }
 

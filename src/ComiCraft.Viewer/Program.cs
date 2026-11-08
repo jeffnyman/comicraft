@@ -84,7 +84,7 @@ internal static class Program
     private const string Usage = """
         Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr>
                comicraft tag <comic> [--<field> <value>...]    show or change its ComicInfo.xml
-               comicraft convert <comic>                       make a CBZ of it
+               comicraft convert <comic> [--format pdf]        make a CBZ of it, or a PDF
 
         'comicraft tag --help' and 'comicraft convert --help' say more about each.
 

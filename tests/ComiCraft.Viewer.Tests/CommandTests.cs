@@ -282,6 +282,64 @@ public sealed class CommandTests : IDisposable
         Assert.Equal(["troll.cbr", "troll.cbz"], Files());
     }
 
+    /// <summary>A comic whose pages are images, as a PDF needs them to be.</summary>
+    private string Pictured(string name = "troll.cbz") =>
+        TestComics.CbzFile(_folder, name, ("1.jpg", TestImages.Jpeg(10, 15)), ("2.jpg", TestImages.Jpeg(10, 15)), ("ComicInfo.xml", System.Text.Encoding.UTF8.GetBytes(Info)));
+
+    [Fact]
+    public void Convert_makes_a_pdf_and_asks_about_the_original()
+    {
+        string path = Pictured();
+
+        Assert.Equal(Exit.Done, ConvertCommand.Run([path, "--format", "pdf"], Terminal("yes"), _trash));
+
+        Assert.Equal("Converted troll.cbz to troll.pdf (2 pages).\nMove the original, troll.cbz, to the Trash? [y/N] Moved troll.cbz to the Trash.\n", Output);
+        Assert.Equal(["troll.pdf"], Files());
+    }
+
+    [Theory]
+    [InlineData("--format=pdf")]
+    [InlineData("--format=PDF")]
+    public void Convert_takes_its_format_either_way(string option)
+    {
+        ConvertCommand.Run([Pictured(), option, "--keep-original"], Terminal(), _trash);
+
+        Assert.Equal(["troll.cbz", "troll.pdf"], Files());
+    }
+
+    [Fact]
+    public void Convert_to_a_pdf_named_by_to_needs_no_format()
+    {
+        ConvertCommand.Run([Pictured(), "--to", Path.Combine(_folder, "Troll 001.pdf"), "--keep-original"], Terminal(), _trash);
+
+        Assert.Equal(["Troll 001.pdf", "troll.cbz"], Files());
+    }
+
+    [Theory]
+    [InlineData("--format", "epub")]
+    [InlineData("--format", "cbz", "--to", "troll.pdf")]
+    [InlineData("--format", "pdf", "--to", "troll.cbz")]
+    [InlineData("--format")]
+    public void Convert_refuses_a_format_it_cannot_make_or_that_says_two_things(params string[] options)
+    {
+        Assert.Throws<UsageException>(() => ConvertCommand.Run([Pictured(), .. options], Terminal(), _trash));
+
+        Assert.Equal(["troll.cbz"], Files());
+    }
+
+    [Fact]
+    public void The_original_is_not_deleted_when_the_pdf_read_back_does_not_have_its_pages()
+    {
+        string original = Pictured();
+        string converted = Path.Combine(_folder, "troll.pdf");
+        File.WriteAllText(converted, "not the comic");
+
+        Originals.Settle(original, converted, Original.Delete, Terminal(), _trash, samePages: () => false);
+
+        Assert.Contains("troll.pdf does not have the same pages as troll.cbz, so troll.cbz is kept.", Errors);
+        Assert.Equal(["troll.cbz", "troll.pdf"], Files());
+    }
+
     [Fact]
     public void Delete_and_keep_cannot_both_be_given()
     {

@@ -2,6 +2,8 @@
   <ItemGroup>
     <!-- reads the comic archives: zip (CBZ) and RAR (CBR) -->
     <PackageVersion Include="SharpCompress" Version="0.50.6" />
+    <!-- reads back the PDFs a comic is converted to, to check them before an original goes -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
     <!-- SDL3 for the viewer's window and input; SDL3_image decodes the pages; SDL3_ttf draws text -->
     <PackageVersion Include="ppy.SDL3-CS" Version="2026.1002.1" />
     <PackageVersion Include="ppy.SDL3_image-CS" Version="2026.1002.1" />

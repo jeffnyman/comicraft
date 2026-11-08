@@ -34,9 +34,10 @@ internal static class Originals
     /// none, the question says the original would be deleted for good. When the Trash will not
     /// take it, the original is never deleted for good unasked: the reader is asked, and a script
     /// keeps it. Either way, it only goes once the converted comic has been opened again and found
-    /// to have the same pages, by number and by name.
+    /// to have the same pages: <paramref name="samePages"/> says whether it has, and, for a CBZ, which
+    /// is the default, they are the same by number and by name.
     /// </summary>
-    public static void Settle(string original, string converted, Original choice, Terminal terminal, ITrash trash)
+    public static void Settle(string original, string converted, Original choice, Terminal terminal, ITrash trash, Func<bool>? samePages = null)
     {
         string name = Path.GetFileName(original);
         string question = trash.IsAvailable
@@ -58,7 +59,8 @@ internal static class Originals
             return;
         }
 
-        if (!ComicBook.Open(original).PageNames.SequenceEqual(ComicBook.Open(converted).PageNames))
+        samePages ??= () => ComicBook.Open(original).PageNames.SequenceEqual(ComicBook.Open(converted).PageNames);
+        if (!samePages())
         {
             terminal.Error($"{Path.GetFileName(converted)} does not have the same pages as {name}, so {name} is kept.");
             return;
