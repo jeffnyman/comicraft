@@ -96,6 +96,24 @@ internal sealed class PageView
     public void ToRight() => Left = 1;
 
     /// <summary>
+    /// Puts the page as it was: fitted, or zoomed as much (no less than the whole page), and
+    /// scrolled as far (a share of the page, from 0 to 1) across and down.
+    /// </summary>
+    public void Restore(Fit fit, double zoom, double down, double across)
+    {
+        static double Share(double share) => double.IsFinite(share) ? Math.Clamp(share, 0, 1) : 0;
+
+        bool zoomed = fit == Fit.Zoom && double.IsFinite(zoom) && zoom > 1 + 1e-6;
+        (Fit, Zoom) = fit switch
+        {
+            Fit.Zoom => zoomed ? (Fit.Zoom, zoom) : (Fit.Page, 1),
+            Fit.Width => (Fit.Width, 1),
+            _ => (Fit.Page, 1),
+        };
+        (Top, Left) = (Share(down), Share(across));
+    }
+
+    /// <summary>
     /// Zooms by the factor (in, when it is more than 1), keeping the point of the page at (x, y) in
     /// the area where it is, as a pinch or a turn of the wheel at the pointer should. It goes no
     /// smaller than the whole page, and no larger than <see cref="MostPixels"/>; zoomed out to the

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ComiCraft.Comics;
 using SDL;
 using static SDL.SDL3;
@@ -15,6 +16,15 @@ internal sealed unsafe class ComicWindow : IDisposable
 {
     private readonly ComicBook _comic;
     private readonly Reading _reading;
+
+    // where the reader was in the comic, by its path, to open it there again; none, when not kept
+    private readonly ReadingPlaces? _places;
+    private readonly string _path;
+    private bool _placesFailed;
+
+    // Ctrl+C in the terminal, the terminal closing, or being told to stop: each closes the window
+    // as its close button does, so where the reader was is remembered, instead of ending at once
+    private readonly List<PosixSignalRegistration> _signals = [];
     private SDL_Window* _window;
     private SDL_Renderer* _renderer;
     private SDL_Texture* _page;
@@ -31,10 +41,18 @@ internal sealed unsafe class ComicWindow : IDisposable
     private float _pressX, _pressY;
     private SDL_Cursor* _moveCursor;
 
-    public ComicWindow(ComicBook comic, bool fullscreen)
+    public ComicWindow(ComicBook comic, string path, bool fullscreen, ReadingPlaces? places)
     {
         _comic = comic;
+        _path = path;
+        _places = places;
         _reading = new Reading(new PageTurner(comic.PageCount), new PageView());
+        if (Recall() is { } place)
+        {
+            _reading.Turner.GoTo(place.Page);
+            _reading.View.Restore(place.Fit, place.Zoom, place.Down, place.Across);
+        }
+
         _details = ComicDetails.Of(comic);
 
         SdlException.ThrowIfFalse(SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_EVENTS), "SDL_Init");
@@ -49,6 +67,17 @@ internal sealed unsafe class ComicWindow : IDisposable
         _renderer = SdlException.ThrowIfNull(SDL_CreateRenderer(_window, (byte*)null), "SDL_CreateRenderer");
         _text = new TextRenderer(_renderer, TextSize);
         _moveCursor = SDL_CreateSystemCursor(SDL_SystemCursor.SDL_SYSTEM_CURSOR_MOVE);
+        foreach (var signal in new[] { PosixSignal.SIGINT, PosixSignal.SIGTERM, PosixSignal.SIGHUP })
+        {
+            try
+            {
+                _signals.Add(PosixSignalRegistration.Create(signal, Quit));
+            }
+            catch (PlatformNotSupportedException)
+            {
+                // a system without the signal ends as it otherwise would; page turns are remembered all the same
+            }
+        }
 
         LoadPage();
         SizeToFirstPage();
@@ -56,6 +85,57 @@ internal sealed unsafe class ComicWindow : IDisposable
     }
 
     public void Run()
+    {
+        try
+        {
+            Read();
+        }
+        finally
+        {
+            Remember();
+        }
+    }
+
+    private static void Quit(PosixSignalContext context)
+    {
+        context.Cancel = true;
+        var quit = new SDL_Event { type = (uint)SDL_EventType.SDL_EVENT_QUIT };
+        SDL_PushEvent(&quit);
+    }
+
+    private Place? Recall()
+    {
+        try
+        {
+            return _places?.Recall(_path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Remembers where the reader is, to open the comic there again; a place that cannot be kept is said once, and the reading goes on.</summary>
+    private void Remember()
+    {
+        if (_places is null || _placesFailed)
+        {
+            return;
+        }
+
+        var view = _reading.View;
+        try
+        {
+            _places.Remember(_path, new Place(_reading.Turner.Current, view.Fit, view.Zoom, view.Top, view.Left) { Read = DateTimeOffset.Now });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _placesFailed = true;
+            Console.Error.WriteLine($"comicraft: where you are in the comic cannot be remembered: {ex.Message}");
+        }
+    }
+
+    private void Read()
     {
         Draw();
 
@@ -304,6 +384,7 @@ internal sealed unsafe class ComicWindow : IDisposable
         if (moved == Moved.Turned)
         {
             LoadPage();
+            Remember();
         }
 
         if (moved != Moved.Nothing)
@@ -513,6 +594,9 @@ internal sealed unsafe class ComicWindow : IDisposable
 
     public void Dispose()
     {
+        _signals.ForEach(s => s.Dispose());
+        _signals.Clear();
+
         if (_page is not null)
         {
             SDL_DestroyTexture(_page);

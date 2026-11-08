@@ -16,13 +16,14 @@ internal static class Program
             {
                 "tag" => TagCommand.Run(args[1..], terminal, Trash.ForThisSystem()),
                 "convert" => ConvertCommand.Run(args[1..], terminal, Trash.ForThisSystem()),
+                "forget" => ForgetCommand.Run(args[1..], terminal, ReadingPlaces.ForThisUser()),
                 _ => View(args),
             };
         }
         catch (UsageException ex)
         {
             terminal.Error(ex.Message);
-            Console.Error.WriteLine($"Run 'comicraft {(args.FirstOrDefault() is "tag" or "convert" ? args[0] + " " : "")}--help' for more.");
+            Console.Error.WriteLine($"Run 'comicraft {(args.FirstOrDefault() is "tag" or "convert" or "forget" ? args[0] + " " : "")}--help' for more.");
             return Exit.BadCommandLine;
         }
         catch (FileNotFoundException ex)
@@ -69,7 +70,7 @@ internal static class Program
 
         try
         {
-            using var window = new ComicWindow(comic, fullscreen);
+            using var window = new ComicWindow(comic, path, fullscreen, ReadingPlaces.ForThisUser());
             window.Run();
         }
         catch (SdlException ex)
@@ -85,8 +86,10 @@ internal static class Program
         Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr | comic.pdf>
                comicraft tag <comic> [--<field> <value>...]         its ComicInfo.xml
                comicraft convert <comic | folder> [--format pdf]    a CBZ or PDF of it
+               comicraft forget <comic> | --all                     where you were in it
 
-        'comicraft tag --help' and 'comicraft convert --help' say more about each.
+        A comic opens where you left it, on its page, fitted and zoomed as it was.
+        'comicraft tag --help', 'convert --help' and 'forget --help' say more.
 
         Keys:
           Space, Page Down      a screen across or down, then the next page

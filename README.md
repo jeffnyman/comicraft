@@ -22,7 +22,8 @@ ComiCraft attaches one, gives the comic's details.
 
 ## Reading
 
-`comicraft <comic>` opens the comic in a window the shape of its first page.
+`comicraft <comic>` opens the comic in a window the shape of its first page, or, when you have
+read it before, where you left it (see [Where you were](#where-you-were)).
 `comicraft --help` lists the keys.
 
 | Option | What it does |
@@ -104,6 +105,30 @@ the title bar comes from the same place, such as *Operation: Knightstrike #3 –
 All of this comes from the comic's `ComicInfo.xml`, the metadata file begun by ComicRack and kept
 now by the [Anansi Project](https://anansi-project.github.io/docs/comicinfo/intro). Comics without
 one, or with one that cannot be read, still open, and show their file name and their pages.
+
+### Where you were
+
+A comic opens where you left it: at the page you were on, fitted, zoomed and scrolled as it was.
+Where you are is remembered each time you turn a page and when you close the window, or stop
+ComiCraft with Ctrl+C. It is kept for each comic by its full path, so a comic that is moved or
+renamed opens at its first page, for the last 1000 comics read, in a file of your own:
+
+| System | File |
+|---|---|
+| Windows | `%APPDATA%\ComiCraft\reading.json` |
+| macOS | `~/Library/Application Support/ComiCraft/reading.json` |
+| Linux | `$XDG_STATE_HOME/comicraft/reading.json`, which is `~/.local/state/comicraft/reading.json` unless the variable says otherwise |
+
+Nothing else is kept there, and nothing about a comic is kept anywhere else. **Home** goes back to
+the first page at any time. To forget:
+
+```
+comicraft forget "Troll 001.cbz"    # forget one comic, which opens at its first page again
+comicraft forget --all              # forget every comic, removing the file
+```
+
+A comic can be forgotten after it has been moved or deleted. Deleting the file by hand does the
+same as `--all`; a file that cannot be read is treated as empty and started again.
 
 ## Changing a comic's details
 
@@ -219,7 +244,7 @@ will not take is kept.
 | Path | What it is |
 |---|---|
 | `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the `tag` and `convert` commands (`Cli`), and moving originals to the Trash (`Platform`). |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the `tag`, `convert` and `forget` commands (`Cli`), where you were in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
 | `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig, and PDFs made by hand of pages that are pictures and pages that are not. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
 
