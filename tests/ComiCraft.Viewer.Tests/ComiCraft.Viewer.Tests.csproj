@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\ComiCraft.Viewer\ComiCraft.Viewer.csproj" />
+    <!-- the comics the library's tests make, made the same way here -->
+    <Compile Include="..\ComiCraft.Comics.Tests\TestComics.cs" Link="TestComics.cs" />
   </ItemGroup>
 </Project>

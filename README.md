@@ -71,14 +71,57 @@ All of this comes from the comic's `ComicInfo.xml`, the metadata file begun by C
 now by the [Anansi Project](https://anansi-project.github.io/docs/comicinfo/intro). Comics without
 one, or with one that cannot be read, still open, and show their file name and their pages.
 
+## Changing a comic's details
+
+`comicraft tag <comic>` shows the fields of the comic's `ComicInfo.xml`. Given fields, it
+changes them, and says what it changed:
+
+```
+comicraft tag "Troll 001.cbz" --series Troll --number 1 --year 1993 --publisher Image
+comicraft tag "Troll 001.cbz" --cover-artist "Rob Liefeld"
+comicraft tag "Troll 001.cbz" --notes ""
+```
+
+A field's name is its name in ComicInfo, in any case, with or without hyphens (`--coverartist`,
+`--cover-artist`, `--CoverArtist`), and `--field=value` works as well as `--field value`. An empty
+value (`""`) removes the field. `comicraft tag --help` lists every field.
+
+Each value is checked before anything is done, so a mistake (a month of 13, a field that does not
+exist) leaves the comic as it was. A change that changes nothing does not write the file. Only the
+fields given change: everything else in `ComicInfo.xml` is kept, including what ComiCraft does not
+read itself, such as the page list or a tagger's own elements. The comic's pages are copied as they
+are, and the comic is replaced in one step, so it is never left half written. A comic that is
+read-only is left alone.
+
+### CBRs
+
+A CBR is a RAR archive, and RAR can be read by free software but not written. To change a CBR,
+ComiCraft converts it to a CBZ beside it, with everything that was in it, and changes that. It asks
+before converting, unless `--convert` is given, and then asks whether to delete the original. The
+answer is no unless it is yes, and the original is only deleted once the CBZ has been opened again
+and found to have the same pages.
+
+`comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and asks the
+same about the original. `--to <file.cbz>` names the CBZ, and an existing file is never written over.
+
+| Option | What it does |
+|---|---|
+| `--convert` | Converts a CBR to change it, without asking. (`tag`) |
+| `--delete-original` | Deletes the original after converting, without asking. |
+| `--keep-original` | Keeps the original after converting, without asking. |
+| `--to <file.cbz>` | Names the CBZ a conversion makes. (`convert`) |
+
+Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
+without `--convert`, and an original is kept without `--delete-original`.
+
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading `ComicInfo.xml`, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` viewer, on SDL: the window, fitting and scrolling pages, keys and mouse, and the details panel. |
-| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics made in memory. |
-| `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window. |
+| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, and the details and text wrapping the viewer shows. |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), and the `tag` and `convert` commands (`Cli`). |
+| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics made in memory and on disk, CBRs among them. |
+| `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
 
 Beyond the .NET SDK, the dependencies are [SharpCompress](https://github.com/adamhathcock/sharpcompress)
 for the archives, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
@@ -96,6 +139,8 @@ Needs the .NET 10 SDK.
 dotnet build ComiCraft.slnx
 dotnet test ComiCraft.slnx
 dotnet run --project src/ComiCraft.Viewer -- <comic> [--fullscreen]
+dotnet run --project src/ComiCraft.Viewer -- tag <comic> [--<field> <value>...]
+dotnet run --project src/ComiCraft.Viewer -- convert <comic>
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```
 

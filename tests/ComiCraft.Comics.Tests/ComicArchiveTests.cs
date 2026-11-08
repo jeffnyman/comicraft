@@ -198,6 +198,29 @@ public sealed class ComicArchiveTests : IDisposable
     }
 
     [Fact]
+    public void A_real_rar_is_converted()
+    {
+        string path = TestComics.CbrFile(_folder, "comic.cbr", ("Issue 1/1.jpg", "page one"), ("Issue 1/2.jpg", "page two"), ("ComicInfo.xml", Info));
+
+        string cbz = ComicArchive.ConvertToCbz(path);
+
+        Assert.Equal(ArchiveKind.Zip, ComicArchive.KindOf(cbz));
+        Assert.Equal(["ComicInfo.xml", "Issue 1/1.jpg", "Issue 1/2.jpg"], Entries(cbz).Keys.Order());
+        Assert.Equal("page two", Entries(cbz)["Issue 1/2.jpg"].Text);
+        Assert.Equal("Troll", ComicArchive.ReadComicInfo(path)?.Get("Series"));
+    }
+
+    [Fact]
+    public void A_real_rar_is_not_written()
+    {
+        string path = TestComics.CbrFile(_folder, "comic.cbr", ("1.jpg", "1"), ("ComicInfo.xml", Info));
+        byte[] before = File.ReadAllBytes(path);
+
+        Assert.Throws<ComicEditException>(() => ComicArchive.WriteComicInfo(path, Edited(path, "Series", "Troll II")));
+        Assert.Equal(before, File.ReadAllBytes(path));
+    }
+
+    [Fact]
     public void Pages_are_stored_as_they_are_when_converted()
     {
         string path = TestComics.CbzFile(_folder, "comic.cbr", ("1.jpg", new string('x', 10_000)), ("ComicInfo.xml", Info + new string(' ', 10_000)));
