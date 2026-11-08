@@ -101,8 +101,12 @@ before converting, unless `--convert` is given, and then asks whether to move th
 Trash. The answer is no unless it is yes, and the original only goes once the CBZ has been opened
 again and found to have the same pages.
 
-On macOS the original goes to the Trash of the drive it is on, as it would from Finder. On
-other systems ComiCraft cannot use the Trash yet, and the question says the original would be
+On macOS the original goes to the Trash of the drive it is on, as it would from Finder. On Linux
+it goes to the Trash as the [freedesktop.org Trash Specification](https://specifications.freedesktop.org/trash/latest/)
+lays it out, which GNOME, KDE and tools such as `trash-cli` all read: the home trash
+(`~/.local/share/Trash`) for a file on the same file system as the home, and that file system's
+own (`.Trash-<uid>` at its top) for one on another, as a Windows drive under `/mnt` is in WSL. On
+Windows ComiCraft cannot use the Recycle Bin yet, and the question says the original would be
 deleted permanently. An original the Trash will not take is only deleted permanently when you say
 so.
 

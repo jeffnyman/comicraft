@@ -25,8 +25,11 @@ internal interface ITrash
 
 internal static class Trash
 {
-    /// <summary>This system's Trash: macOS's, for now; elsewhere, none.</summary>
-    public static ITrash ForThisSystem() => OperatingSystem.IsMacOS() ? new MacTrash() : new NoTrash();
+    /// <summary>This system's Trash: macOS's, or the freedesktop.org one on Linux; on Windows, none yet.</summary>
+    public static ITrash ForThisSystem() =>
+        OperatingSystem.IsMacOS() ? new MacTrash()
+        : OperatingSystem.IsLinux() ? FreedesktopTrash.ForThisUser()
+        : new NoTrash();
 }
 
 /// <summary>A system ComiCraft does not yet have the Trash of.</summary>
