@@ -56,7 +56,9 @@ public static class ComicPdf
             comic = ComicBook.Open(path);
             comicInfo = ComicArchive.ReadComicInfoBytes(path);
         }
-        catch (Exception ex) when (ex is not IOException and not UnauthorizedAccessException and not ComicEditException)
+        catch (Exception ex) when (ex is not IOException and not UnauthorizedAccessException &&
+            // an archive that cannot be opened says so, naming it; a PDF that is not a comic says why, without
+            !(ex is ComicEditException && ex.Message.StartsWith($"'{name}'", StringComparison.Ordinal)))
         {
             throw new ComicEditException($"'{name}' cannot be read as a comic: {ex.Message}", ex);
         }
@@ -135,6 +137,11 @@ public static class ComicPdf
 
     private static PdfImage ImageOf(ComicBook comic, int index, Func<ReadOnlyMemory<byte>, Pixels> decode)
     {
+        if (comic.Problem(index) is { } problem)
+        {
+            throw new ComicEditException($"page {index + 1} ({comic.PageNames[index]}) cannot be put in a PDF: {problem}.");
+        }
+
         var page = comic.Page(index);
         byte[] bytes = MemoryMarshal.TryGetArray(page, out var segment) && segment is { Offset: 0 } && segment.Count == segment.Array!.Length
             ? segment.Array

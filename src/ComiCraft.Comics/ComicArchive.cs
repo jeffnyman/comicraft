@@ -18,6 +18,9 @@ public enum ArchiveKind
 
     /// <summary>A 7-Zip archive, as a CB7 is.</summary>
     SevenZip,
+
+    /// <summary>Not an archive but a PDF: it can be read, and converted to a PDF again, but not written.</summary>
+    Pdf,
 }
 
 /// <summary>
@@ -45,6 +48,7 @@ public static class ComicArchive
         // RAR 1.5 to 4, and RAR 5, which adds a 1 after the 7
         [(byte)'R', (byte)'a', (byte)'r', (byte)'!', 0x1A, 7, 0, ..] or [(byte)'R', (byte)'a', (byte)'r', (byte)'!', 0x1A, 7, 1, 0, ..] => ArchiveKind.Rar,
         [(byte)'7', (byte)'z', 0xBC, 0xAF, 0x27, 0x1C, ..] => ArchiveKind.SevenZip,
+        _ when PdfComic.IsPdf(start) => ArchiveKind.Pdf,
         _ => ArchiveKind.Unknown,
     };
 
@@ -58,6 +62,11 @@ public static class ComicArchive
     /// <summary>The comic's ComicInfo.xml as it is in the archive, byte for byte; null when it has none.</summary>
     internal static byte[]? ReadComicInfoBytes(string path)
     {
+        if (KindOf(path) == ArchiveKind.Pdf)
+        {
+            return PdfComic.ComicInfoBytes(path);
+        }
+
         using var archive = Open(path);
         if (archive.IsSolid)
         {
@@ -101,9 +110,12 @@ public static class ComicArchive
         var kind = KindOf(path);
         if (kind != ArchiveKind.Zip)
         {
-            throw new ComicEditException(kind == ArchiveKind.Rar
-                ? $"'{Path.GetFileName(path)}' is a RAR archive (a CBR), which cannot be written. Convert it to a CBZ to change it."
-                : $"'{Path.GetFileName(path)}' is not a zip archive (a CBZ), so it cannot be written.");
+            throw new ComicEditException(kind switch
+            {
+                ArchiveKind.Rar => $"'{Path.GetFileName(path)}' is a RAR archive (a CBR), which cannot be written. Convert it to a CBZ to change it.",
+                ArchiveKind.Pdf => $"'{Path.GetFileName(path)}' is a PDF, whose ComicInfo.xml ComiCraft does not change. Change the CBZ it was made from, and make the PDF again.",
+                _ => $"'{Path.GetFileName(path)}' is not a zip archive (a CBZ), so it cannot be written.",
+            });
         }
 
         ThrowIfReadOnly(path);
@@ -140,6 +152,11 @@ public static class ComicArchive
         if (File.Exists(target))
         {
             throw new ComicEditException($"'{Path.GetFileName(target)}' is already there, and is left as it is.");
+        }
+
+        if (KindOf(path) == ArchiveKind.Pdf)
+        {
+            throw new ComicEditException($"'{Path.GetFileName(path)}' is a PDF; ComiCraft makes CBZs of CBRs and CBZs only.");
         }
 
         using var archive = Open(path);

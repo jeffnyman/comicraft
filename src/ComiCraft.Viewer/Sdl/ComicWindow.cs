@@ -18,6 +18,9 @@ internal sealed unsafe class ComicWindow : IDisposable
     private SDL_Window* _window;
     private SDL_Renderer* _renderer;
     private SDL_Texture* _page;
+
+    // why the page is not shown, when it is not: a page of a PDF that is not a picture, or one that is broken
+    private string? _notShown;
     private TextRenderer? _text;
     private readonly IReadOnlyList<Detail> _details;
     private bool _showInfo;
@@ -344,15 +347,24 @@ internal sealed unsafe class ComicWindow : IDisposable
 
         ShowTitle();
 
-        // the page stays pinned while SDL_image decodes it; the stream is closed when it is done
+        _notShown = null;
         int current = _reading.Turner.Current;
+        if (_comic.Problem(current) is { } problem)
+        {
+            _notShown = $"Page {current + 1} is not shown: {problem}.";
+            return;
+        }
+
+        // the page stays pinned while SDL_image decodes it; the stream is closed when it is done
         var image = _comic.Page(current);
         using var pin = image.Pin();
         var io = SdlException.ThrowIfNull(SDL_IOFromConstMem((IntPtr)pin.Pointer, (nuint)image.Length), "SDL_IOFromConstMem");
         _page = IMG_LoadTexture_IO(_renderer, io, true);
         if (_page is null)
         {
-            Console.Error.WriteLine($"comicraft: page {current + 1} ({_comic.PageNames[current]}) could not be shown: {SDL_GetError()}");
+            string error = SDL_GetError() ?? "";
+            Console.Error.WriteLine($"comicraft: page {current + 1} ({_comic.PageNames[current]}) could not be shown: {error}");
+            _notShown = $"Page {current + 1} could not be shown: {error}";
         }
     }
 
@@ -388,6 +400,10 @@ internal sealed unsafe class ComicWindow : IDisposable
             var target = new SDL_FRect { x = place.X, y = place.Y, w = place.Width, h = place.Height };
             SDL_RenderTexture(_renderer, _page, null, &target);
         }
+        else if (_notShown is not null)
+        {
+            DrawNotShown(_notShown);
+        }
 
         if (_showInfo)
         {
@@ -395,6 +411,36 @@ internal sealed unsafe class ComicWindow : IDisposable
         }
 
         SDL_RenderPresent(_renderer);
+    }
+
+    /// <summary>Why the page is not shown, in the middle of the window where it would be.</summary>
+    private void DrawNotShown(string why)
+    {
+        if (_text is null)
+        {
+            return;
+        }
+
+        int outputWidth, outputHeight;
+        SDL_GetRenderOutputSize(_renderer, &outputWidth, &outputHeight);
+        float density = SDL_GetWindowDisplayScale(_window);
+        density = density > 0 ? density : 1;
+        _text.SetSize(TextSize * density);
+
+        float width = Math.Min(outputWidth - 2 * 24 * density, 30 * TextSize * density);
+        if (width < 1)
+        {
+            return;
+        }
+
+        var lines = TextWrap.Wrap(why, width, text => _text.Measure(text));
+        float y = (outputHeight - lines.Count * _text.LineHeight) / 2f;
+        var color = new SDL_Color { r = 170, g = 170, b = 170, a = 255 };
+        foreach (string line in lines)
+        {
+            _text.Draw(line, (outputWidth - _text.Measure(line)) / 2, y, color);
+            y += _text.LineHeight;
+        }
     }
 
     /// <summary>The size of text, in points; on a high density display, it is that many times as many pixels.</summary>

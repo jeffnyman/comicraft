@@ -1,12 +1,24 @@
 # ComiCraft
 
-**ComiCraft** is a C# viewer for digital comics: CBZ (zip) and CBR (RAR) files. It shows a comic
+**ComiCraft** is a C# viewer for digital comics: CBZ (zip) and CBR (RAR) files, and PDFs whose
+pages are pictures, as comics' are. It shows a comic
 a page at a time, whole, fitted to the window's width, or zoomed, and scrolled across and down,
 and shows what the comic's `ComicInfo.xml` says about it, when it has one.
 
 A comic's kind is found from its contents, not its extension, so a CBR that is really a zip (or
 the other way round) opens all the same. Its pages are the images in it (JPEG, PNG, GIF, WebP,
 BMP) in the natural order of their names, so `page2.jpg` comes before `page10.jpg`.
+
+### PDFs
+
+A PDF's pages are shown when each is a picture, as in the PDFs ComiCraft makes and in most
+scanned comics. The picture is taken out of the PDF as it is, a JPEG as the JPEG the PDF holds and
+anything else as the same pixels, so it looks as it would in the comic it was made from; the PDF
+is not drawn, as a reader of PDFs draws it. A page that is not only a picture, such as one with
+text set on it, or one made of several pictures, says why it is not shown in its place, and a PDF
+none of whose pages is a picture, such as a book of text, is not opened. Text hidden behind a
+picture, which makes a scan searchable, does not count. A `ComicInfo.xml` attached to the PDF, as
+ComiCraft attaches one, gives the comic's details.
 
 ## Reading
 
@@ -115,6 +127,9 @@ read itself, such as the page list or a tagger's own elements. The comic's pages
 are, and the comic is replaced in one step, so it is never left half written. A comic that is
 read-only is left alone.
 
+A PDF's `ComicInfo.xml` is shown, but not changed: change the CBZ the PDF was made from, and make
+the PDF again.
+
 ### CBRs
 
 A CBR is a RAR archive, and RAR can be read by free software but not written. To change a CBR,
@@ -154,7 +169,8 @@ scanned.
 The comic's `ComicInfo.xml` gives the PDF its title (the heading, as the title bar shows it), its
 author (the writers), its subject (the summary) and its keywords (the genres), and goes in whole,
 as an attachment, so nothing in it is lost. Anything else in the archive, such as a scanner's note,
-has no place in a PDF and is left out. ComiCraft does not yet open PDFs itself.
+has no place in a PDF and is left out. ComiCraft opens the PDF with the same pages, byte for byte,
+and the same details.
 
 Before the original goes, the PDF is read back by [PdfPig](https://github.com/UglyToad/PdfPig), a
 reader of PDFs that is not ComiCraft's own: it must have as many pages, each with one image, whose
@@ -196,13 +212,13 @@ will not take is kept.
 
 | Path | What it is |
 |---|---|
-| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs, and the details and text wrapping the viewer shows. |
+| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
 | `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the `tag` and `convert` commands (`Cli`), and moving originals to the Trash (`Platform`). |
-| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig. |
+| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig, and PDFs made by hand of pages that are pictures and pages that are not. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
 
 Beyond the .NET SDK, the dependencies are [SharpCompress](https://github.com/adamhathcock/sharpcompress)
-for the archives, PdfPig for reading back the PDFs ComiCraft makes, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
+for the archives, PdfPig for reading PDFs, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
 (`ppy.SDL3_ttf-CS`) for the viewer's window, its pages and its text.
 
 The viewer's text is set in [Inter](https://rsms.me/inter/), by Rasmus Andersson, built into the
