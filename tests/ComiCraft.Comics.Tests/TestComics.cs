@@ -26,6 +26,15 @@ internal static class TestComics
         return stream;
     }
 
+    /// <summary>Writes a zip with the given entries and their text to a file, and returns its path.</summary>
+    public static string CbzFile(string folder, string name, params (string Name, string Text)[] entries)
+    {
+        string path = Path.Combine(folder, name);
+        using var file = File.Create(path);
+        Cbz(entries).CopyTo(file);
+        return path;
+    }
+
     /// <summary>A comic of the given pages with the given ComicInfo.xml.</summary>
     public static ComicBook WithInfo(string comicInfo, params string[] pages)
     {

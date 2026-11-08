@@ -99,12 +99,10 @@ public sealed record ComicInfo
     /// <summary>Reads a ComicInfo.xml; null when it is not well-formed XML or not a ComicInfo document.</summary>
     public static ComicInfo? Parse(Stream stream)
     {
-        // a DOCTYPE is ignored, never fetched: the file comes from whoever made the archive
-        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null };
         XElement root;
         try
         {
-            using var reader = XmlReader.Create(stream, settings);
+            using var reader = XmlReader.Create(stream, ReaderSettings);
             root = XElement.Load(reader);
         }
         catch (XmlException)
@@ -112,11 +110,22 @@ public sealed record ComicInfo
             return null;
         }
 
-        if (root.Name.LocalName != "ComicInfo")
-        {
-            return null;
-        }
+        return root.Name.LocalName == RootName ? FromElement(root) : null;
+    }
 
+    /// <summary>
+    /// How ComicInfo.xml is read: a DOCTYPE is ignored, never fetched, since the file comes from
+    /// whoever made the archive; and the spacing between elements is let go, so that a document
+    /// written out again is laid out afresh, its new elements on lines of their own like the rest.
+    /// </summary>
+    internal static XmlReaderSettings ReaderSettings => new() { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null, IgnoreWhitespace = true };
+
+    /// <summary>The name of a ComicInfo document's root element.</summary>
+    internal const string RootName = "ComicInfo";
+
+    /// <summary>What a ComicInfo element says; its unreadable values are missing, as in <see cref="Parse"/>.</summary>
+    internal static ComicInfo FromElement(XElement root)
+    {
         string? Text(string name)
         {
             string? value = root.Elements().FirstOrDefault(e => e.Name.LocalName == name)?.Value.Trim();
