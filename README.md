@@ -97,9 +97,14 @@ read-only is left alone.
 
 A CBR is a RAR archive, and RAR can be read by free software but not written. To change a CBR,
 ComiCraft converts it to a CBZ beside it, with everything that was in it, and changes that. It asks
-before converting, unless `--convert` is given, and then asks whether to delete the original. The
-answer is no unless it is yes, and the original is only deleted once the CBZ has been opened again
-and found to have the same pages.
+before converting, unless `--convert` is given, and then asks whether to move the original to the
+Trash. The answer is no unless it is yes, and the original only goes once the CBZ has been opened
+again and found to have the same pages.
+
+On macOS the original goes to the Trash of the drive it is on, as it would from Finder. On
+other systems ComiCraft cannot use the Trash yet, and the question says the original would be
+deleted permanently. An original the Trash will not take is only deleted permanently when you say
+so.
 
 `comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and asks the
 same about the original. `--to <file.cbz>` names the CBZ, and an existing file is never written over.
@@ -107,12 +112,13 @@ same about the original. `--to <file.cbz>` names the CBZ, and an existing file i
 | Option | What it does |
 |---|---|
 | `--convert` | Converts a CBR to change it, without asking. (`tag`) |
-| `--delete-original` | Deletes the original after converting, without asking. |
+| `--delete-original` | Moves the original to the Trash after converting, without asking. |
 | `--keep-original` | Keeps the original after converting, without asking. |
 | `--to <file.cbz>` | Names the CBZ a conversion makes. (`convert`) |
 
 Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
-without `--convert`, and an original is kept without `--delete-original`.
+without `--convert`, an original is kept without `--delete-original`, and an original the Trash
+will not take is kept.
 
 ## Layout
 

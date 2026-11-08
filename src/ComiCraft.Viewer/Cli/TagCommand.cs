@@ -1,4 +1,5 @@
 using ComiCraft.Comics;
+using ComiCraft.Viewer.Platform;
 
 namespace ComiCraft.Viewer.Cli;
 
@@ -19,9 +20,11 @@ internal static class TagCommand
         hyphens: --series, --cover-artist, --CoverArtist. --field=value works too.
 
         A CBR cannot be changed, only converted to a CBZ that can. You are asked whether to
-        convert it, unless --convert is given; and then whether to delete the original, unless
-        --delete-original or --keep-original is. Run from a script, nothing is asked: a CBR is
-        not converted without --convert, and an original is kept without --delete-original.
+        convert it, unless --convert is given; and then whether to move the original to the
+        Trash, unless --delete-original or --keep-original is. Run from a script, nothing is
+        asked: a CBR is not converted without --convert, and an original is kept without
+        --delete-original. An original the Trash will not take is only deleted permanently
+        when you say so; a script keeps it.
 
         Fields:
         {Fields}
@@ -35,7 +38,7 @@ internal static class TagCommand
     /// <summary>A field to change, and what to: null removes it.</summary>
     private readonly record struct Change(ComicInfoField Field, string? Value);
 
-    public static int Run(string[] args, Terminal terminal)
+    public static int Run(string[] args, Terminal terminal, ITrash trash)
     {
         var options = args.ToList();
         if (options.Remove("--help") || options.Remove("-h"))
@@ -114,7 +117,7 @@ internal static class TagCommand
 
         if (writable != path)
         {
-            Originals.Settle(path, writable, original, terminal);
+            Originals.Settle(path, writable, original, terminal, trash);
         }
 
         return Exit.Done;

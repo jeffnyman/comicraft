@@ -1,5 +1,6 @@
 using ComiCraft.Comics;
 using ComiCraft.Viewer.Cli;
+using ComiCraft.Viewer.Platform;
 using ComiCraft.Viewer.Sdl;
 
 namespace ComiCraft.Viewer;
@@ -13,8 +14,8 @@ internal static class Program
         {
             return args.FirstOrDefault() switch
             {
-                "tag" => TagCommand.Run(args[1..], terminal),
-                "convert" => ConvertCommand.Run(args[1..], terminal),
+                "tag" => TagCommand.Run(args[1..], terminal, Trash.ForThisSystem()),
+                "convert" => ConvertCommand.Run(args[1..], terminal, Trash.ForThisSystem()),
                 _ => View(args),
             };
         }

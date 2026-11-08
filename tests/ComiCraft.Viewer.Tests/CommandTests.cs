@@ -1,6 +1,7 @@
 using ComiCraft.Comics;
 using ComiCraft.Comics.Tests;
 using ComiCraft.Viewer.Cli;
+using ComiCraft.Viewer.Platform;
 
 namespace ComiCraft.Viewer.Tests;
 
@@ -10,6 +11,31 @@ public sealed class CommandTests : IDisposable
     private readonly string _folder = Directory.CreateTempSubdirectory("comicraft-commands-").FullName;
     private readonly StringWriter _out = new();
     private readonly StringWriter _error = new();
+    private readonly FakeTrash _trash;
+
+    public CommandTests() => _trash = new FakeTrash(Path.Combine(_folder, ".trash"));
+
+    /// <summary>A Trash that is a folder of the test's own; or, when told, one that will not take anything.</summary>
+    private sealed class FakeTrash(string folder, string? refusal = null) : ITrash
+    {
+        public bool IsAvailable => true;
+
+        public List<string> Moved { get; } = [];
+
+        public Trashed Move(string path)
+        {
+            if (refusal is not null)
+            {
+                return Trashed.Not(refusal);
+            }
+
+            Directory.CreateDirectory(folder);
+            string into = Path.Combine(folder, Path.GetFileName(path));
+            File.Move(path, into);
+            Moved.Add(Path.GetFileName(path));
+            return Trashed.To(into);
+        }
+    }
 
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
@@ -25,7 +51,9 @@ public sealed class CommandTests : IDisposable
             ? new Terminal(TextReader.Null, _out, _error, canAsk: false)
             : new Terminal(new StringReader(string.Join("\n", answers) + "\n"), _out, _error, canAsk: true);
 
-    private int Tag(Terminal terminal, params string[] args) => TagCommand.Run(args, terminal);
+    private int Tag(Terminal terminal, params string[] args) => TagCommand.Run(args, terminal, _trash);
+
+    private int TagWith(ITrash trash, Terminal terminal, params string[] args) => TagCommand.Run(args, terminal, trash);
 
     private string Cbz(string name = "troll.cbz") => TestComics.CbzFile(_folder, name, ("1.jpg", "one"), ("2.jpg", "two"), ("ComicInfo.xml", Info));
 
@@ -119,20 +147,21 @@ public sealed class CommandTests : IDisposable
             + "Converted troll.cbr to troll.cbz.\n"
             + "  Year  (none) -> 1993\n"
             + "Saved troll.cbz.\n"
-            + "Delete the original, troll.cbr? [y/N] Deleted troll.cbr.\n",
+            + "Move the original, troll.cbr, to the Trash? [y/N] Moved troll.cbr to the Trash.\n",
             Output);
         Assert.Equal(["troll.cbz"], Files());
+        Assert.Equal(["troll.cbr"], _trash.Moved);
         Assert.Equal(1993, ComicBook.Open(Path.Combine(_folder, "troll.cbz")).Info!.Year);
     }
 
     [Fact]
-    public void Tag_on_a_cbr_keeps_it_unless_told_to_delete_it()
+    public void Tag_on_a_cbr_keeps_it_unless_told_to_trash_it()
     {
         string path = Cbr();
 
         Tag(Terminal("y", ""), path, "--year", "1993");
 
-        Assert.EndsWith("Delete the original, troll.cbr? [y/N] Kept troll.cbr.\n", Output);
+        Assert.EndsWith("Move the original, troll.cbr, to the Trash? [y/N] Kept troll.cbr.\n", Output);
         Assert.Equal(["troll.cbr", "troll.cbz"], Files());
     }
 
@@ -157,7 +186,7 @@ public sealed class CommandTests : IDisposable
         Tag(Terminal("n"), path, "--year", "1993", "--convert");
 
         Assert.StartsWith("Converted troll.cbr to troll.cbz.\n", Output);
-        Assert.EndsWith("Delete the original, troll.cbr? [y/N] Kept troll.cbr.\n", Output);
+        Assert.EndsWith("Move the original, troll.cbr, to the Trash? [y/N] Kept troll.cbr.\n", Output);
     }
 
     [Fact]
@@ -175,10 +204,10 @@ public sealed class CommandTests : IDisposable
     public void Tag_on_a_cbr_from_a_script_keeps_the_original_unless_told()
     {
         Tag(Terminal(null), Cbr("a.cbr"), "--year", "1993", "--convert");
-        Assert.EndsWith("Kept a.cbr; give --delete-original to delete it.\n", Output);
+        Assert.EndsWith("Kept a.cbr; give --delete-original to move it to the Trash.\n", Output);
 
         Tag(Terminal(null), Cbr("b.cbr"), "--year", "1993", "--convert", "--delete-original");
-        Assert.EndsWith("Deleted b.cbr.\n", Output);
+        Assert.EndsWith("Moved b.cbr to the Trash.\n", Output);
 
         Assert.Equal(["a.cbr", "a.cbz", "b.cbz"], Files());
     }
@@ -213,9 +242,9 @@ public sealed class CommandTests : IDisposable
     {
         string path = Cbr();
 
-        Assert.Equal(Exit.Done, ConvertCommand.Run([path], Terminal("yes")));
+        Assert.Equal(Exit.Done, ConvertCommand.Run([path], Terminal("yes"), _trash));
 
-        Assert.Equal("Converted troll.cbr to troll.cbz (2 pages).\nDelete the original, troll.cbr? [y/N] Deleted troll.cbr.\n", Output);
+        Assert.Equal("Converted troll.cbr to troll.cbz (2 pages).\nMove the original, troll.cbr, to the Trash? [y/N] Moved troll.cbr to the Trash.\n", Output);
         Assert.Equal(["troll.cbz"], Files());
     }
 
@@ -224,7 +253,7 @@ public sealed class CommandTests : IDisposable
     {
         string path = Cbr();
 
-        ConvertCommand.Run([path, "--to", Path.Combine(_folder, "Troll 001.cbz"), "--keep-original"], Terminal());
+        ConvertCommand.Run([path, "--to", Path.Combine(_folder, "Troll 001.cbz"), "--keep-original"], Terminal(), _trash);
 
         Assert.Equal(["Troll 001.cbz", "troll.cbr"], Files());
     }
@@ -235,7 +264,7 @@ public sealed class CommandTests : IDisposable
         string path = Cbr();
         File.WriteAllText(Path.Combine(_folder, "troll.cbz"), "someone's file");
 
-        Assert.Throws<ComicEditException>(() => ConvertCommand.Run([path, "--delete-original"], Terminal()));
+        Assert.Throws<ComicEditException>(() => ConvertCommand.Run([path, "--delete-original"], Terminal(), _trash));
 
         Assert.Equal("someone's file", File.ReadAllText(Path.Combine(_folder, "troll.cbz")));
         Assert.Equal(["troll.cbr", "troll.cbz"], Files());
@@ -247,7 +276,7 @@ public sealed class CommandTests : IDisposable
         string original = Cbr();
         string converted = TestComics.CbzFile(_folder, "troll.cbz", ("1.jpg", "one"));
 
-        Originals.Settle(original, converted, Original.Delete, Terminal());
+        Originals.Settle(original, converted, Original.Delete, Terminal(), _trash);
 
         Assert.Contains("does not have the same pages as troll.cbr, so troll.cbr is kept.", Errors);
         Assert.Equal(["troll.cbr", "troll.cbz"], Files());
@@ -256,12 +285,50 @@ public sealed class CommandTests : IDisposable
     [Fact]
     public void Delete_and_keep_cannot_both_be_given()
     {
-        Assert.Throws<UsageException>(() => ConvertCommand.Run([Cbr(), "--delete-original", "--keep-original"], Terminal()));
+        Assert.Throws<UsageException>(() => ConvertCommand.Run([Cbr(), "--delete-original", "--keep-original"], Terminal(), _trash));
     }
 
     [Fact]
     public void A_missing_comic_is_not_found()
     {
         Assert.Throws<FileNotFoundException>(() => Tag(Terminal(), Path.Combine(_folder, "nowhere.cbz")));
+    }
+
+    [Fact]
+    public void Where_there_is_no_trash_the_question_says_the_original_goes_for_good()
+    {
+        string path = Cbr();
+
+        TagWith(new NoTrash(), Terminal("y", "y"), path, "--year", "1993");
+
+        Assert.EndsWith("Delete the original, troll.cbr, permanently? [y/N] Deleted troll.cbr.\n", Output);
+        Assert.Equal(["troll.cbz"], Files());
+    }
+
+    [Fact]
+    public void An_original_the_trash_will_not_take_is_deleted_for_good_only_when_said()
+    {
+        var refusing = new FakeTrash(Path.Combine(_folder, ".trash"), "the volume has no Trash");
+
+        TagWith(refusing, Terminal("y", "y", "n"), Cbr("a.cbr"), "--year", "1993");
+        Assert.EndsWith("Delete a.cbr permanently instead? [y/N] Kept a.cbr.\n", Output);
+
+        TagWith(refusing, Terminal("y", "y", "y"), Cbr("b.cbr"), "--year", "1993");
+        Assert.EndsWith("Delete b.cbr permanently instead? [y/N] Deleted b.cbr.\n", Output);
+
+        Assert.Contains("a.cbr could not be moved to the Trash: the volume has no Trash", Errors);
+        Assert.Equal(["a.cbr", "a.cbz", "b.cbz"], Files());
+    }
+
+    [Fact]
+    public void A_script_keeps_an_original_the_trash_will_not_take()
+    {
+        var refusing = new FakeTrash(Path.Combine(_folder, ".trash"), "the volume has no Trash");
+
+        TagWith(refusing, Terminal(null), Cbr(), "--year", "1993", "--convert", "--delete-original");
+
+        Assert.Contains("troll.cbr could not be moved to the Trash: the volume has no Trash", Errors);
+        Assert.EndsWith("Kept troll.cbr.\n", Output);
+        Assert.Equal(["troll.cbr", "troll.cbz"], Files());
     }
 }

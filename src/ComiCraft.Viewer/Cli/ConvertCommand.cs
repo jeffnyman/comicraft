@@ -1,4 +1,5 @@
 using ComiCraft.Comics;
+using ComiCraft.Viewer.Platform;
 
 namespace ComiCraft.Viewer.Cli;
 
@@ -11,11 +12,13 @@ internal static class ConvertCommand
         Makes a CBZ of the comic, with everything that is in it, beside it by the same name,
         or at the file --to names. An existing file is never written over.
 
-        Afterwards, you are asked whether to delete the original; the answer is no unless it is
-        yes. --delete-original and --keep-original answer before it is asked, as a script must.
+        Afterwards, you are asked whether to move the original to the Trash; the answer is no
+        unless it is yes. --delete-original and --keep-original answer before it is asked, as a
+        script must. An original the Trash will not take is only deleted permanently when you
+        say so; a script keeps it.
         """;
 
-    public static int Run(string[] args, Terminal terminal)
+    public static int Run(string[] args, Terminal terminal, ITrash trash)
     {
         var options = args.ToList();
         if (options.Remove("--help") || options.Remove("-h"))
@@ -42,7 +45,7 @@ internal static class ConvertCommand
         string converted = ComicArchive.ConvertToCbz(path, target);
         int pages = ComicBook.Open(converted).PageCount;
         terminal.Out.WriteLine($"Converted {System.IO.Path.GetFileName(path)} to {System.IO.Path.GetFileName(converted)} ({pages} pages).");
-        Originals.Settle(path, converted, original, terminal);
+        Originals.Settle(path, converted, original, terminal, trash);
         return Exit.Done;
     }
 }
