@@ -19,7 +19,7 @@ public enum ArchiveKind
     /// <summary>A 7-Zip archive, as a CB7 is.</summary>
     SevenZip,
 
-    /// <summary>Not an archive but a PDF: it can be read, and converted to a PDF again, but not written.</summary>
+    /// <summary>Not an archive but a PDF: it can be read, and converted to a CBZ or to a PDF again, but not written.</summary>
     Pdf,
 }
 
@@ -156,7 +156,8 @@ public static class ComicArchive
 
         if (KindOf(path) == ArchiveKind.Pdf)
         {
-            throw new ComicEditException($"'{Path.GetFileName(path)}' is a PDF; ComiCraft makes CBZs of CBRs and CBZs only.");
+            PdfToCbz(path, target);
+            return target;
         }
 
         using var archive = Open(path);
@@ -201,6 +202,53 @@ public static class ComicArchive
         });
 
         return target;
+    }
+
+    /// <summary>
+    /// A CBZ of a PDF's pages, each as the picture it is (see <see cref="PdfComic"/>), named for
+    /// its place, "Page 001.jpg" and so on, with the ComicInfo.xml attached to it, as it is. A page
+    /// that is not a picture stops it, as there is nothing to put in its place.
+    /// </summary>
+    private static void PdfToCbz(string path, string target)
+    {
+        string name = Path.GetFileName(path);
+        ComicBook comic;
+        byte[]? comicInfo;
+        try
+        {
+            comic = ComicBook.Open(path);
+            comicInfo = PdfComic.ComicInfoBytes(path);
+        }
+        catch (Exception ex) when (ex is not IOException and not UnauthorizedAccessException)
+        {
+            throw new ComicEditException($"'{name}' cannot be read as a comic: {ex.Message}", ex);
+        }
+
+        if (comic.PageCount == 0)
+        {
+            throw new ComicEditException($"'{name}' has no pages to make a CBZ of.");
+        }
+
+        ReplaceSafely(target, overwrite: false, copy =>
+        {
+            using var zip = ZipFile.Open(copy, ZipArchiveMode.Create);
+            for (int i = 0; i < comic.PageCount; i++)
+            {
+                if (comic.Problem(i) is { } problem)
+                {
+                    throw new ComicEditException($"page {i + 1} of '{name}' cannot be put in a CBZ: {problem}.");
+                }
+
+                using var page = zip.CreateEntry(comic.PageNames[i], CompressionLevel.NoCompression).Open();
+                page.Write(comic.Page(i).Span);
+            }
+
+            if (comicInfo is not null)
+            {
+                using var info = zip.CreateEntry(ComicInfo.FileName, CompressionLevel.Optimal).Open();
+                info.Write(comicInfo);
+            }
+        });
     }
 
     private static IArchive Open(string path)

@@ -158,6 +158,12 @@ original as above, and it goes only once what was made has been read back and fo
 pages. `--to <file>` names what is made (a name ending in `.pdf` makes a PDF without `--format`),
 and an existing file is never written over.
 
+A PDF ComiCraft can open (see [PDFs](#pdfs)) converts to a CBZ too: each page goes in as the
+picture it is, byte for byte, named for its place (`Page 001.jpg`, `Page 002.png`), with the PDF's
+attached `ComicInfo.xml`. A comic converted to a PDF and back has the same pages as it had. A PDF
+with a page that is not a picture is not converted, since there is nothing to put in its place.
+The PDF only goes once the CBZ has been read back and found to have the same pictures.
+
 A PDF has a page for each of the comic's pages, in the same order, each the page's image and
 nothing else. Nothing is lost on the way. JPEG pages, and PNG pages, go in as they are, byte for
 byte, as a PDF can hold them. WebP, GIF and BMP pages, which it cannot, go in as their pixels,

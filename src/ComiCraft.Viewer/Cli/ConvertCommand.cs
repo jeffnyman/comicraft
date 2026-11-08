@@ -21,7 +21,8 @@ internal static class ConvertCommand
         A CBZ has everything that is in the comic. A PDF has its pages, a page of the PDF to each,
         and its ComicInfo.xml, which goes in as an attachment and gives the PDF its title and
         author. Nothing is lost: JPEG and PNG pages go in as they are, and WebP, GIF and BMP
-        pages as their pixels.
+        pages as their pixels. A PDF whose pages are pictures converts to a CBZ of them, as
+        they are, with its ComicInfo.xml.
 
         Given a folder, converts every CBR in it to a CBZ, or, with --format pdf, every CBR and
         CBZ to a PDF, each beside itself; with --recursive, those in the folders in it too. A
@@ -86,7 +87,18 @@ internal static class ConvertCommand
         }
 
         string converted = ComicArchive.ConvertToCbz(path, target);
-        return new Made(converted, ComicBook.Open(converted).PageCount, null);
+
+        // a PDF's pages have no names of their own to match, so it is their pictures that must
+        Func<bool>? samePages = ComicArchive.KindOf(path) == ArchiveKind.Pdf ? () => SamePictures(path, converted) : null;
+        return new Made(converted, ComicBook.Open(converted).PageCount, samePages);
+    }
+
+    /// <summary>Whether the two comics have the same pages, in the same order, byte for byte.</summary>
+    private static bool SamePictures(string original, string converted)
+    {
+        var (from, to) = (ComicBook.Open(original), ComicBook.Open(converted));
+        return from.PageCount == to.PageCount &&
+            Enumerable.Range(0, from.PageCount).All(i => from.Page(i).Span.SequenceEqual(to.Page(i).Span));
     }
 
     /// <summary>

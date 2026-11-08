@@ -80,7 +80,7 @@ public sealed class PdfComicTests : IDisposable
         var comic = ComicBook.Open(pdf);
 
         Assert.Equal(2, comic.PageCount);
-        Assert.Equal(["Page 001", "Page 002"], comic.PageNames);
+        Assert.Equal(["Page 001.jpg", "Page 002.jpg"], comic.PageNames);
         Assert.Equal(cover, comic.Page(0).ToArray());
         Assert.Equal(spread, comic.Page(1).ToArray());
         Assert.Null(comic.Problem(0));
@@ -163,14 +163,52 @@ public sealed class PdfComicTests : IDisposable
     }
 
     [Fact]
-    public void A_pdfs_comic_info_is_not_changed_and_it_is_not_made_a_cbz()
+    public void A_pdfs_comic_info_is_not_changed()
     {
         string pdf = Converted(null, ("1.jpg", TestImages.Jpeg(10, 10)));
 
         var write = Assert.Throws<ComicEditException>(() => ComicArchive.WriteComicInfo(pdf, ComicInfoDocument.Load(new MemoryStream(Encoding.UTF8.GetBytes(Info)))));
+
         Assert.Contains("is a PDF", write.Message);
-        var convert = Assert.Throws<ComicEditException>(() => ComicArchive.ConvertToCbz(pdf, Path.Combine(_folder, "made.cbz")));
-        Assert.Contains("is a PDF", convert.Message);
+    }
+
+    [Fact]
+    public void A_cbz_of_a_pdf_has_its_pictures_named_for_their_places_and_its_comic_info()
+    {
+        byte[] jpeg = TestImages.Jpeg(10, 10), png = TestImages.Png(1, 1, 0, 8, [[5]]), info = Encoding.UTF8.GetBytes(Info);
+        string pdf = Converted(null, ("a.jpg", jpeg), ("b.png", png), ("ComicInfo.xml", info));
+
+        string cbz = ComicArchive.ConvertToCbz(pdf, Path.Combine(_folder, "made.cbz"));
+
+        Assert.Equal(ArchiveKind.Zip, ComicArchive.KindOf(cbz));
+        var comic = ComicBook.Open(cbz);
+        Assert.Equal(["Page 001.jpg", "Page 002.png"], comic.PageNames);
+        Assert.Equal(jpeg, comic.Page(0).ToArray());
+        Assert.Equal(ComicBook.Open(pdf).Page(1).ToArray(), comic.Page(1).ToArray());
+        Assert.Equal([5], ReadPng(comic.Page(1).ToArray()).Rows);
+        Assert.Equal(info, ComicArchive.ReadComicInfoBytes(cbz));
+    }
+
+    [Fact]
+    public void A_cbz_of_a_pdf_without_comic_info_has_none()
+    {
+        string pdf = Converted(null, ("a.jpg", TestImages.Jpeg(10, 10)));
+
+        string cbz = ComicArchive.ConvertToCbz(pdf, Path.Combine(_folder, "made.cbz"));
+
+        Assert.Null(ComicArchive.ReadComicInfoBytes(cbz));
+    }
+
+    [Fact]
+    public void A_page_that_is_not_a_picture_stops_a_cbz_and_leaves_nothing()
+    {
+        string pdf = HandMade((Picture, null), ("BT /F1 12 Tf 10 10 Td (Ads) Tj ET " + Picture, null));
+        string cbz = Path.Combine(_folder, "made.cbz");
+
+        var error = Assert.Throws<ComicEditException>(() => ComicArchive.ConvertToCbz(pdf, cbz));
+
+        Assert.Contains("page 2 of 'hand.pdf' cannot be put in a CBZ: it has text on it", error.Message);
+        Assert.Empty(Directory.EnumerateFiles(_folder, "*made*", new EnumerationOptions { AttributesToSkip = 0 }));
     }
 
     // PDFs made by hand, with pages other than ComiCraft's: each page's content, and its resources

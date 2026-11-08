@@ -297,6 +297,19 @@ public sealed class CommandTests : IDisposable
         Assert.Equal(["troll.pdf"], Files());
     }
 
+    [Fact]
+    public void Convert_makes_a_cbz_of_a_pdf_and_moves_the_pdf_to_the_trash_when_its_pictures_are_all_there()
+    {
+        ConvertCommand.Run([Pictured(), "--format", "pdf", "--keep-original"], Terminal(), _trash);
+        File.Delete(Path.Combine(_folder, "troll.cbz"));
+
+        Assert.Equal(Exit.Done, ConvertCommand.Run([Path.Combine(_folder, "troll.pdf")], Terminal("yes"), _trash));
+
+        Assert.EndsWith("Converted troll.pdf to troll.cbz (2 pages).\nMove the original, troll.pdf, to the Trash? [y/N] Moved troll.pdf to the Trash.\n", Output);
+        Assert.Equal(["troll.cbz"], Files());
+        Assert.Equal(["Page 001.jpg", "Page 002.jpg"], ComicBook.Open(Path.Combine(_folder, "troll.cbz")).PageNames);
+    }
+
     [Theory]
     [InlineData("--format=pdf")]
     [InlineData("--format=PDF")]

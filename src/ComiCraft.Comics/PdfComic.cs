@@ -51,8 +51,14 @@ internal static class PdfComic
         }
 
         int digits = Math.Max(3, pictures.Length.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);
-        var names = Enumerable.Range(1, pictures.Length)
-            .Select(n => "Page " + n.ToString("D" + digits, System.Globalization.CultureInfo.InvariantCulture))
+        // named as a page of a CBZ would be, for what it comes out as: a JPEG, or a PNG
+        var names = Enumerable.Range(0, pictures.Length)
+            .Select(i => "Page " + (i + 1).ToString("D" + digits, System.Globalization.CultureInfo.InvariantCulture) + pictures[i] switch
+            {
+                null => "",
+                var picture when IsJpeg(picture) => ".jpg",
+                _ => ".png",
+            })
             .ToList();
 
         return ComicBook.FromPdf(name, ComicInfoOf(document), names, index =>
@@ -148,12 +154,12 @@ internal static class PdfComic
     /// </summary>
     internal static byte[]? ImageOf(IPdfImage picture)
     {
-        var filters = Filters(picture.ImageDictionary);
-        if (filters is ["DCTDecode" or "DCT"])
+        if (IsJpeg(picture))
         {
             return picture.RawMemory.ToArray();
         }
 
+        var filters = Filters(picture.ImageDictionary);
         if (filters is not null && !picture.ImageDictionary.ContainsKey(NameToken.Decode) && Kind(picture) is { } kind)
         {
             if (Predicted(picture, filters, kind) is { } png)
@@ -274,6 +280,9 @@ internal static class PdfComic
 
         return alpha.ToArray();
     }
+
+    /// <summary>Whether the picture is a JPEG, and nothing else: so it is taken out as it is.</summary>
+    private static bool IsJpeg(IPdfImage picture) => Filters(picture.ImageDictionary) is ["DCTDecode" or "DCT"];
 
     /// <summary>The names of the filters the picture's data is compressed with, in order; null when they cannot be told.</summary>
     private static List<string>? Filters(DictionaryToken dictionary)
