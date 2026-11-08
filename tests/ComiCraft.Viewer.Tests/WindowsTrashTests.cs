@@ -23,6 +23,16 @@ public sealed class WindowsTrashTests : IDisposable
         Assert.Equal(destroys, RecycleBin.WouldDestroy(flags));
     }
 
+    [Theory]
+    [InlineData(0x00000000, false)]     // S_OK
+    [InlineData(0x00270008, false)]     // COPYENGINE_S_DONT_PROCESS_CHILDREN: what recycling a file reports
+    [InlineData(unchecked((int)0x80004004), true)] // E_ABORT
+    [InlineData(unchecked((int)0x80270000), true)] // COPYENGINE_E_USER_CANCELLED
+    public void Only_an_error_is_a_failure_not_every_result_but_S_OK(int hresult, bool failed)
+    {
+        Assert.Equal(failed, RecycleBin.Failed(hresult));
+    }
+
     [Fact]
     public void A_file_goes_to_the_recycle_bin()
     {

@@ -71,7 +71,8 @@ public sealed class ComicBook
                 using var source = open();
                 using var image = new MemoryStream();
                 source.CopyTo(image);
-                pages.Add((key, image.ToArray()));
+                // a RAR's folders are written with the system's separator (\ on Windows), a zip's with /
+                pages.Add((key.Replace('\\', '/'), image.ToArray()));
             }
             else if (info is null && ComicInfo.IsComicInfo(key))
             {

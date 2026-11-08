@@ -11,6 +11,12 @@ internal static class RecycleBin
 
     /// <summary>Whether a delete with these flags would destroy the item rather than recycle it.</summary>
     internal static bool WouldDestroy(uint flags) => (flags & TSF_DELETE_RECYCLE_IF_POSSIBLE) == 0;
+
+    /// <summary>
+    /// Whether an HRESULT is an error, as the FAILED macro has it: its severity bit set. A success
+    /// need not be S_OK; a file recycled whole is reported as COPYENGINE_S_DONT_PROCESS_CHILDREN.
+    /// </summary>
+    internal static bool Failed(int hresult) => hresult < 0;
 }
 
 /// <summary>
@@ -86,9 +92,11 @@ internal sealed class WindowsTrash : ITrash
                 return Trashed.Not("Windows would have deleted it permanently: its drive has no Recycle Bin, the Bin is set not to keep deleted files, or the file is too large for it.");
             }
 
-            if (performed != S_OK || sink.Deleted is not { } deleted || deleted != S_OK)
+            // success is any HRESULT that is not an error, not S_OK alone: a file recycled whole is
+            // reported as COPYENGINE_S_DONT_PROCESS_CHILDREN (0x00270008)
+            if (Failed(performed) || sink.Deleted is not { } deleted || Failed(deleted))
             {
-                return Trashed.Not($"Windows did not move it to the Recycle Bin (error 0x{(performed != S_OK ? performed : sink.Deleted ?? 0):X8}).");
+                return Trashed.Not($"Windows did not move it to the Recycle Bin (error 0x{(Failed(performed) ? performed : sink.Deleted ?? 0):X8}).");
             }
 
             if (sink.Recycled is null)
@@ -115,6 +123,8 @@ internal sealed class WindowsTrash : ITrash
             }
         }
     }
+
+    private static bool Failed(int hresult) => RecycleBin.Failed(hresult);
 
     private static void Check(int hresult, string call)
     {

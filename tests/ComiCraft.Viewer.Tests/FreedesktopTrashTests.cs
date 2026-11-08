@@ -30,10 +30,11 @@ public sealed class FreedesktopTrashTests : IDisposable
 
     public void Dispose()
     {
-        // what a test made read-only is made writable again, to be cleaned away
+        // what a test made read-only is made writable again, to be cleaned away (on Windows, where
+        // the tests do nothing, there is nothing to make writable, and no Unix modes to set)
         foreach (string dir in Directory.EnumerateDirectories(_root, "*", SearchOption.AllDirectories).Prepend(_root))
         {
-            if (new DirectoryInfo(dir).LinkTarget is null)
+            if (!Skip && new DirectoryInfo(dir).LinkTarget is null)
             {
                 File.SetUnixFileMode(dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
