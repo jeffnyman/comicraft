@@ -78,6 +78,13 @@ internal static class Originals
             return;
         }
 
+        // a system that says it failed but took the file anyway is not to be believed about it
+        if (!File.Exists(original))
+        {
+            terminal.Error($"{name} is gone, but the system did not say it went to the Trash: {trashed.Failure}");
+            return;
+        }
+
         terminal.Error($"{name} could not be moved to the Trash: {trashed.Failure}");
         if (terminal.CanAsk && terminal.Ask($"Delete {name} permanently instead?"))
         {

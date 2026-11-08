@@ -331,4 +331,26 @@ public sealed class CommandTests : IDisposable
         Assert.EndsWith("Kept troll.cbr.\n", Output);
         Assert.Equal(["troll.cbr", "troll.cbz"], Files());
     }
+
+    /// <summary>A Trash that takes the file and then says it did not.</summary>
+    private sealed class LyingTrash : ITrash
+    {
+        public bool IsAvailable => true;
+
+        public Trashed Move(string path)
+        {
+            File.Delete(path);
+            return Trashed.Not("it went somewhere");
+        }
+    }
+
+    [Fact]
+    public void An_original_that_is_gone_though_the_trash_said_no_is_said_to_be_gone()
+    {
+        TagWith(new LyingTrash(), Terminal("y", "y"), Cbr(), "--year", "1993");
+
+        Assert.Contains("troll.cbr is gone, but the system did not say it went to the Trash: it went somewhere", Errors);
+        Assert.DoesNotContain("permanently instead", Output);
+        Assert.Equal(["troll.cbz"], Files());
+    }
 }

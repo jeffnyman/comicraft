@@ -106,9 +106,12 @@ it goes to the Trash as the [freedesktop.org Trash Specification](https://specif
 lays it out, which GNOME, KDE and tools such as `trash-cli` all read: the home trash
 (`~/.local/share/Trash`) for a file on the same file system as the home, and that file system's
 own (`.Trash-<uid>` at its top) for one on another, as a Windows drive under `/mnt` is in WSL. On
-Windows ComiCraft cannot use the Recycle Bin yet, and the question says the original would be
-deleted permanently. An original the Trash will not take is only deleted permanently when you say
-so.
+Windows it goes to the Recycle Bin of the drive it is on, as it would from Explorer. Windows deletes
+a file permanently, and quietly, where it cannot recycle it (a drive with no Recycle Bin, one set
+not to keep deleted files, a file too large for the Bin), so ComiCraft asks Windows first whether it
+means to recycle the file, and stops it when it does not.
+
+On every system, an original the Trash will not take is only deleted permanently when you say so.
 
 `comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and asks the
 same about the original. `--to <file.cbz>` names the CBZ, and an existing file is never written over.

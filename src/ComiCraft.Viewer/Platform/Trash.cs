@@ -25,9 +25,10 @@ internal interface ITrash
 
 internal static class Trash
 {
-    /// <summary>This system's Trash: macOS's, or the freedesktop.org one on Linux; on Windows, none yet.</summary>
+    /// <summary>This system's Trash: macOS's, Windows's Recycle Bin, or the freedesktop.org one on Linux; elsewhere, none.</summary>
     public static ITrash ForThisSystem() =>
         OperatingSystem.IsMacOS() ? new MacTrash()
+        : OperatingSystem.IsWindows() ? new WindowsTrash()
         : OperatingSystem.IsLinux() ? FreedesktopTrash.ForThisUser()
         : new NoTrash();
 }
