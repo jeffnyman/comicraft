@@ -3,6 +3,11 @@
 </h1>
 
 <p align="center">
+  <a href="https://github.com/jeffnyman/comicraft/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/jeffnyman/comicraft/build.yml?branch=main&style=for-the-badge&label=build" alt="Build"></a>
+  <a href="https://www.nuget.org/packages/ComiCraft"><img src="https://img.shields.io/nuget/v/ComiCraft?style=for-the-badge&label=nuget" alt="NuGet"></a>
+</p>
+
+<p align="center">
   ✨ Long live the classics.
 </p>
 
@@ -27,6 +32,40 @@ ComiCraft shows a note explaining why in place of that page. A PDF with no pictu
 like an ordinary book of text, won't open. Hidden text behind a scan, the kind that makes it
 searchable, doesn't count against it. If the PDF has a `ComicInfo.xml` attached (ComiCraft
 attaches one to the PDFs it makes), that's where the comic's details come from.
+
+## Installing
+
+ComiCraft is a dotnet tool on nuget.org, and the library it's built on is a package of its own.
+Both need .NET 10.
+
+```
+dotnet tool install -g ComiCraft
+comicraft <comic or folder>
+```
+
+`dotnet tool update -g ComiCraft` gets you the newest version later on.
+
+If you'd like to work with comics in your own code, `ComiCraft.Comics` reads CBZ, CBR, CB7 and
+picture PDFs, reads and writes `ComicInfo.xml`, and converts comics to CBZ or PDF:
+
+```
+dotnet add package ComiCraft.Comics
+```
+
+```csharp
+using ComiCraft.Comics;
+
+var comic = ComicBook.Open("Troll 001.cbz");
+Console.WriteLine($"{comic.Heading}: {comic.PageCount} pages");
+
+// each page is the image as it is in the archive, a JPEG, PNG and so on
+File.WriteAllBytes("cover" + Path.GetExtension(comic.PageNames[0]), comic.Page(0).ToArray());
+
+// change one field of the comic's ComicInfo.xml, keeping everything else in it
+var info = ComicArchive.ReadComicInfo("Troll 001.cbz") ?? ComicInfoDocument.New();
+info.Set("Publisher", "Image");
+ComicArchive.WriteComicInfo("Troll 001.cbz", info);
+```
 
 ## Reading
 
@@ -349,6 +388,7 @@ the Trash won't take is kept.
 | `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, built on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the folder list (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), remembering your place in each comic (`ReadingPlaces`), looking comics up on Metron and naming them (`Lookup`), and moving originals to the Trash (`Platform`). |
 | `tests/ComiCraft.Comics.Tests` | Tests for the library, using small comics and images made in memory and on disk (CBRs included), PDFs it makes read back by PdfPig, and hand-made PDFs with both picture and non-picture pages. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and navigation, without a window, and for the commands. |
+| `tools/icon` | Writes the viewer's icon, `comicraft.ico` and the `assets/icon.png` nuget.org shows, from `AppIcon`, the same drawing the window's icon comes from. |
 
 Besides the .NET SDK, ComiCraft depends on [SharpCompress](https://github.com/adamhathcock/sharpcompress)
 for archives, PdfPig for reading PDFs, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`)
@@ -371,6 +411,13 @@ dotnet run --project src/ComiCraft.Viewer -- tag <comic | folder> --lookup [--re
 dotnet run --project src/ComiCraft.Viewer -- convert <comic | folder> [--format pdf] [--from pdf] [--recursive]
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```
+
+`dotnet publish src/ComiCraft.Viewer -c Release -r win-x64` (or `linux-x64`, `osx-arm64` and so on)
+makes the viewer a single file that needs nothing installed, not even .NET. Every push to `main`
+builds one for Windows, Linux and macOS.
+
+`dotnet run --project tools/icon -- src/ComiCraft.Viewer/comicraft.ico assets/icon.png preview.png`
+writes the icon again after a change to `AppIcon`, with a sheet of every size to look at.
 
 Comics never go in the repository: `*.cbz` and `*.cbr` are ignored.
 

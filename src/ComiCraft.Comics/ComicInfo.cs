@@ -11,10 +11,13 @@ namespace ComiCraft.Comics;
 /// </summary>
 public sealed record ComicInfo
 {
+    /// <summary>The name the file has in a comic archive, at its top level.</summary>
     public const string FileName = "ComicInfo.xml";
 
+    /// <summary>The issue's own title, such as "The War Begins!".</summary>
     public string? Title { get; init; }
 
+    /// <summary>The series the issue is part of.</summary>
     public string? Series { get; init; }
 
     /// <summary>The issue number, as text: issues can be numbered "1.5", "½" or "Annual 1".</summary>
@@ -26,44 +29,64 @@ public sealed record ComicInfo
     /// <summary>How many issues the series has.</summary>
     public int? Count { get; init; }
 
+    /// <summary>The story arc, or arcs, the issue is part of.</summary>
     public string? StoryArc { get; init; }
 
+    /// <summary>The year on the cover.</summary>
     public int? Year { get; init; }
 
+    /// <summary>The month on the cover, from 1 to 12.</summary>
     public int? Month { get; init; }
 
+    /// <summary>The day of the month on the cover, which few comics have.</summary>
     public int? Day { get; init; }
 
+    /// <summary>The writers, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Writers { get; init; } = [];
 
+    /// <summary>The pencillers, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Pencillers { get; init; } = [];
 
+    /// <summary>The inkers, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Inkers { get; init; } = [];
 
+    /// <summary>The colorists, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Colorists { get; init; } = [];
 
+    /// <summary>The letterers, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Letterers { get; init; } = [];
 
+    /// <summary>The cover artists, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> CoverArtists { get; init; } = [];
 
+    /// <summary>The editors, in the order the tagger gave them.</summary>
     public IReadOnlyList<string> Editors { get; init; } = [];
 
+    /// <summary>The publisher, such as "Marvel".</summary>
     public string? Publisher { get; init; }
 
+    /// <summary>The publisher's imprint the issue came out under, such as "Vertigo".</summary>
     public string? Imprint { get; init; }
 
+    /// <summary>A web page about the issue.</summary>
     public string? Web { get; init; }
 
+    /// <summary>What the issue is about.</summary>
     public string? Summary { get; init; }
 
+    /// <summary>Notes, often the tagger's: where the details came from, and when.</summary>
     public string? Notes { get; init; }
 
+    /// <summary>The genres, such as "Super-Hero".</summary>
     public IReadOnlyList<string> Genres { get; init; } = [];
 
+    /// <summary>The characters in the issue.</summary>
     public IReadOnlyList<string> Characters { get; init; } = [];
 
+    /// <summary>The teams in the issue.</summary>
     public IReadOnlyList<string> Teams { get; init; } = [];
 
+    /// <summary>The places the issue is set in.</summary>
     public IReadOnlyList<string> Locations { get; init; } = [];
 
     /// <summary>How many pages the comic has, by the tagger's count.</summary>

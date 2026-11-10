@@ -12,6 +12,7 @@ public readonly record struct Detail(string Label, string Value);
 /// </summary>
 public static class ComicDetails
 {
+    /// <summary>The details of <paramref name="comic"/>, in order, each with a value.</summary>
     public static IReadOnlyList<Detail> Of(ComicBook comic)
     {
         var details = new List<Detail>();

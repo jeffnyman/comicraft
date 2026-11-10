@@ -3,7 +3,42 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>comicraft</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <PackageId>ComiCraft</PackageId>
+    <ToolCommandName>comicraft</ToolCommandName>
+    <!-- a tool installed under a newer runtime should still start -->
+    <RollForward>Major</RollForward>
+    <Description>A viewer for digital comics (CBZ, CBR, CB7 and PDF), with commands to convert them, edit their ComicInfo.xml and look them up on Metron: dotnet tool install -g ComiCraft, then comicraft &lt;comic or folder&gt;.</Description>
+    <!-- tools/icon writes it from AppIcon, the drawing the window's icon comes from -->
+    <ApplicationIcon>comicraft.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <!-- published for a platform (dotnet publish -c Release -r win-x64), the viewer is one file
+       that needs nothing installed: the runtime and SDL3 inside, compressed. Not trimmed: the
+       Windows Recycle Bin is reached through COM, which a trimmed app cannot use -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != '' and '$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <!-- SDL3 ships native libraries for every platform; a desktop viewer does not need the Android
+       and iOS ones, which are most of the package (the path's separator either slash: Windows
+       writes a backslash) -->
+  <Target Name="ComiCraftTrimMobileNatives" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^runtimes[\\/](android|ios)'))" />
+      <!-- and a release has no symbols, the other projects' included -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'$(DebugType)' == 'none' and '%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\ComiCraft.Comics\ComiCraft.Comics.csproj" />
     <InternalsVisibleTo Include="ComiCraft.Viewer.Tests" />

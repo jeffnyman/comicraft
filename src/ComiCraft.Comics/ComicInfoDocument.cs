@@ -102,6 +102,7 @@ public sealed class ComicInfoDocument
         return stream.ToArray();
     }
 
+    /// <summary>The document as XML text, indented.</summary>
     public override string ToString() => Encoding.UTF8.GetString(ToBytes());
 
     private IEnumerable<XElement> Elements(string name) => Root.Elements().Where(e => e.Name.LocalName == name);

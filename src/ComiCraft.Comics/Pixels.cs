@@ -6,6 +6,7 @@ namespace ComiCraft.Comics;
 /// </summary>
 public sealed record Pixels
 {
+    /// <summary>The pixels of a page <paramref name="width"/> by <paramref name="height"/>, with <paramref name="rgba"/> exactly four bytes to each.</summary>
     public Pixels(int width, int height, byte[] rgba)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -18,9 +19,12 @@ public sealed record Pixels
         (Width, Height, Rgba) = (width, height, rgba);
     }
 
+    /// <summary>The width in pixels.</summary>
     public int Width { get; }
 
+    /// <summary>The height in pixels.</summary>
     public int Height { get; }
 
+    /// <summary>Red, green, blue and alpha bytes for each pixel, row after row from the top.</summary>
     public byte[] Rgba { get; }
 }

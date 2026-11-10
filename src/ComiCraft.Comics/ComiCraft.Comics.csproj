@@ -1,4 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>ComiCraft.Comics</PackageId>
+    <Description>Reads digital comics (CBZ, CBR, CB7 and PDF) page by page, reads and writes their ComicInfo.xml, and converts them to CBZ or PDF. The library the ComiCraft viewer is built on.</Description>
+    <!-- the public API is documented in full -->
+    <NoWarn>$(NoWarn.Replace('CS1591', ''))</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ComiCraft.Comics.Tests" />
     <PackageReference Include="SharpCompress" />

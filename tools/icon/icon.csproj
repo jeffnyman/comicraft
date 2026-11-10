@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- writes the viewer's comicraft.ico, and the 128-pixel icon.png nuget.org shows, from AppIcon,
+       the drawing the window takes its icon from -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>make-icon</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComiCraft.Viewer\ComiCraft.Viewer.csproj" />
+  </ItemGroup>
+</Project>

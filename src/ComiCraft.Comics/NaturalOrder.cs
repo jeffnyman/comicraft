@@ -6,8 +6,10 @@ namespace ComiCraft.Comics;
 /// </summary>
 public sealed class NaturalOrder : IComparer<string>
 {
+    /// <summary>The one there needs to be; it keeps nothing.</summary>
     public static readonly NaturalOrder Instance = new();
 
+    /// <summary>Less than zero when <paramref name="x"/> comes first, more when <paramref name="y"/> does, and zero when they are the same name. A null comes first.</summary>
     public int Compare(string? x, string? y)
     {
         if (x is null || y is null)

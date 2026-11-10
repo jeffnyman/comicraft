@@ -49,6 +49,7 @@ public sealed class ComicBook
     /// <summary>The name of each page in the archive, in reading order; a PDF's are "Page 001" and so on.</summary>
     public IReadOnlyList<string> PageNames { get; }
 
+    /// <summary>How many pages the comic has.</summary>
     public int PageCount => _pages.Length;
 
     /// <summary>
@@ -76,6 +77,7 @@ public sealed class ComicBook
         }
     }
 
+    /// <summary>Reads the comic at <paramref name="path"/>: a CBZ, CBR, CB7 or PDF, known by what is in the file rather than by its extension.</summary>
     public static ComicBook Open(string path)
     {
         using var stream = File.OpenRead(path);

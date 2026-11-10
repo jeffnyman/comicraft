@@ -1,0 +1,63 @@
+# Builds, tests and publishes the viewer on Windows, Linux and macOS on every push to main and every
+# pull request, so a break on any of them shows up in the commit that caused it (the Trash is
+# different on each). Each run keeps the published viewer as an artifact, one file for each
+# platform. Publishing to NuGet is publish.yml, on a tag.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# a newer push to the same branch or pull request cancels the run it makes obsolete
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      # one platform failing does not hide how the others fare
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      # warnings are errors (Directory.Build.props), so this also fails on a new warning
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Test
+        run: dotnet test -c Release --no-build
+
+      # catches packaging breaks (package validation, missing files) before a release tag does; the
+      # packages are the same from any platform, so once is enough
+      - name: Pack
+        if: runner.os == 'Windows'
+        run: dotnet pack -c Release --no-build -o artifacts/packages
+
+      # the single file a release is; on macOS the SDK signs it, as Apple Silicon requires
+      - name: Publish
+        run: dotnet publish src/ComiCraft.Viewer -c Release -r ${{ matrix.rid }} -o publish
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: comicraft-${{ matrix.rid }}
+          path: publish/
+          retention-days: 30

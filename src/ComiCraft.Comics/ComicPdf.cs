@@ -6,6 +6,7 @@ namespace ComiCraft.Comics;
 /// <summary>A comic converted to a PDF: where it is, and what each of its pages' images must be.</summary>
 public sealed record PdfConversion(string Path, IReadOnlyList<string> Pages)
 {
+    /// <summary>How many pages the PDF has.</summary>
     public int PageCount => Pages.Count;
 }
 

@@ -70,6 +70,7 @@ internal sealed unsafe class ComicWindow : IDisposable
         }
 
         _window = SdlException.ThrowIfNull(SDL_CreateWindow("ComiCraft", 800, 1200, flags), "SDL_CreateWindow");
+        SetIcon();
         _renderer = SdlException.ThrowIfNull(SDL_CreateRenderer(_window, (byte*)null), "SDL_CreateRenderer");
         _text = new TextRenderer(_renderer, TextSize);
         _moveCursor = SDL_CreateSystemCursor(SDL_SystemCursor.SDL_SYSTEM_CURSOR_MOVE);
@@ -97,6 +98,28 @@ internal sealed unsafe class ComicWindow : IDisposable
 
         SizeToFirstPage();
         SDL_ShowWindow(_window);
+    }
+
+    /// <summary>The window shows ComiCraft's icon (<see cref="AppIcon"/>), where the video driver has window icons; without one it keeps its own.</summary>
+    private void SetIcon()
+    {
+        const int size = 64;
+        // red, green, blue and alpha bytes in that order (SDL's RGBA32)
+        var format = BitConverter.IsLittleEndian ? SDL_PixelFormat.SDL_PIXELFORMAT_ABGR8888 : SDL_PixelFormat.SDL_PIXELFORMAT_RGBA8888;
+        var icon = SDL_CreateSurface(size, size, format);
+        if (icon is null)
+        {
+            return;
+        }
+
+        var pixels = AppIcon.Render(size);
+        for (int y = 0; y < size; y++)
+        {
+            new ReadOnlySpan<byte>(pixels, y * size * 4, size * 4).CopyTo(new Span<byte>((byte*)icon->pixels + (y * icon->pitch), size * 4));
+        }
+
+        SDL_SetWindowIcon(_window, icon);
+        SDL_DestroySurface(icon);
     }
 
     /// <summary>Starts reading the comic, where the reader was in it, if they have read it before.</summary>
