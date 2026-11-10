@@ -94,6 +94,7 @@ internal static class Program
     private const string Usage = """
         Usage: comicraft [--fullscreen] <comic.cbz | comic.cbr | comic.pdf | folder>
                comicraft tag <comic> [--<field> <value>...]         its ComicInfo.xml
+               comicraft tag <comic | folder> --lookup [--rename]   filled in from Metron
                comicraft convert <comic | folder> [--format pdf]    a CBZ or PDF of it
                comicraft forget <comic> | --all                     where you were in it
 

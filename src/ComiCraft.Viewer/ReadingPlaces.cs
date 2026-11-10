@@ -92,6 +92,23 @@ internal sealed class ReadingPlaces(string file)
         return true;
     }
 
+    /// <summary>
+    /// Remembers the place in a comic that has moved under its new path, as when it is renamed,
+    /// so that it still opens where it was left; returns whether there was a place to move.
+    /// </summary>
+    public bool Move(string from, string to)
+    {
+        var places = Load();
+        if (!places.Remove(Key(from), out var place))
+        {
+            return false;
+        }
+
+        places[Key(to)] = place;
+        Save(places);
+        return true;
+    }
+
     /// <summary>Forgets every comic, removing the file; returns how many were remembered.</summary>
     public int ForgetAll()
     {

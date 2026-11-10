@@ -218,6 +218,45 @@ Where the original goes depends on your system:
 
 On any system, if the Trash won't take the original, it's only deleted permanently if you say so.
 
+### Looking comics up on Metron
+
+Rather than typing every field yourself, you can have ComiCraft fill them in from
+[Metron](https://metron.cloud), a free, community-run comic database:
+
+```
+comicraft tag "F:\Comics\Secret Wars I 01-12 (1984-1985)" --lookup --rename
+```
+
+ComiCraft works out which issue each comic is, from its `ComicInfo.xml` if that already has a
+series and number, or otherwise from its file name (`Marvel Super-Heroes Secret Wars 01 (of 12)
+(1984).cbr` is plenty). Comics from the same series are looked up together. ComiCraft shows you
+the series Metron has that fit, you pick the right one, and then each comic is matched by its
+issue number. Then you get the series, number, cover date, title, summary, credits, characters,
+teams and more. Fields Metron has nothing for are left as they are, and so are your own notes.
+
+`--rename` names each comic by what it says once it's been looked up. By default that's
+`{year}{month} - {series} {number:00}`, which uses the cover date, so a folder sorts in
+publication order: `198405 - Marvel Super Heroes Secret Wars 01.cbz`. You can give your own
+pattern too, as in `--rename="{series} {number:000} ({year})"`. A pattern can use `{series}`,
+`{number}`, `{title}`, `{year}`, `{month}`, `{day}`, `{volume}` and `{publisher}`, and `:00`
+pads a number with zeros. Characters Windows won't allow in a file name are replaced, so
+`Batman: Year One` becomes `Batman - Year One`. If you were partway through a comic, your place
+moves with it to its new name.
+
+Nothing is changed until you've seen everything that will be. ComiCraft lists each comic with
+what it was found to be, its new name and the fields that change, and asks before going ahead;
+`--dry-run` shows the list and stops there. CBRs are converted to CBZs, straight to their new
+names, and you're asked once what to do with the originals. A name that's already taken is
+never written over; the comic just keeps its name.
+
+Metron needs a free account. Give ComiCraft your user name and password in the
+`METRON_USERNAME` and `METRON_PASSWORD` environment variables (or an API token in
+`METRON_TOKEN`). Metron limits how often it can be asked, and when it says to wait, ComiCraft
+waits. Run from a script, ComiCraft only takes a series when exactly one matches the comics'
+name and year; otherwise, `--series-id` tells it which one, using the id shown when you choose.
+Metron shares its data under CC BY-SA 4.0, so ComiCraft notes in each comic's `Notes` field
+where the information came from.
+
 ## Converting a comic
 
 `comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and
@@ -287,6 +326,10 @@ couldn't be converted or the run was stopped, and with 0 otherwise.
 | `--to <file>` | Names the converted file, when converting a single comic. (`convert`) |
 | `--from <kinds>` | Which kinds of comic in a folder to convert: `cbr`, `cbz` or `pdf`, or several, like `cbr,pdf`. (`convert`) |
 | `--recursive` | Converts comics in subfolders too. (`convert`) |
+| `--lookup` | Fills in a comic's details, or a folder's, from Metron. (`tag`) |
+| `--rename[=<pattern>]` | Names each comic by its details once looked up. (`tag --lookup`) |
+| `--series-id <id>` | Says which Metron series the comics are in, instead of choosing. (`tag --lookup`) |
+| `--dry-run` | Shows what a lookup would change, and changes nothing. (`tag --lookup`) |
 
 When run from a script with its input redirected, ComiCraft never asks anything: a CBR isn't
 converted without `--convert`, an original is kept without `--delete-original`, and an original
@@ -297,7 +340,7 @@ the Trash won't take is kept.
 | Path | What it is |
 |---|---|
 | `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, built on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the folder list (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), remembering your place in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, built on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the folder list (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), remembering your place in each comic (`ReadingPlaces`), looking comics up on Metron and naming them (`Lookup`), and moving originals to the Trash (`Platform`). |
 | `tests/ComiCraft.Comics.Tests` | Tests for the library, using small comics and images made in memory and on disk (CBRs included), PDFs it makes read back by PdfPig, and hand-made PDFs with both picture and non-picture pages. |
 | `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and navigation, without a window, and for the commands. |
 
@@ -318,6 +361,7 @@ dotnet build ComiCraft.slnx
 dotnet test ComiCraft.slnx
 dotnet run --project src/ComiCraft.Viewer -- <comic> [--fullscreen]
 dotnet run --project src/ComiCraft.Viewer -- tag <comic> [--<field> <value>...]
+dotnet run --project src/ComiCraft.Viewer -- tag <comic | folder> --lookup [--rename] [--dry-run]
 dotnet run --project src/ComiCraft.Viewer -- convert <comic | folder> [--format pdf] [--from pdf] [--recursive]
 dotnet run --project src/ComiCraft.Viewer -- --help
 ```

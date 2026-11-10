@@ -1,4 +1,5 @@
 using ComiCraft.Comics;
+using ComiCraft.Viewer.Lookup;
 using ComiCraft.Viewer.Platform;
 
 namespace ComiCraft.Viewer.Cli;
@@ -14,6 +15,7 @@ internal static class TagCommand
     public static string Usage => $"""
         Usage: comicraft tag <comic>
                comicraft tag <comic> --<field> <value>... [--convert] [--delete-original | --keep-original]
+               comicraft tag <comic | folder> --lookup [--rename] ...   ('tag --lookup --help' says more)
 
         With no fields, shows the comic's ComicInfo.xml. With fields, changes them: a field given
         an empty value ("") is removed. Field names are ComicInfo's, in any case, with or without
@@ -38,13 +40,19 @@ internal static class TagCommand
     /// <summary>A field to change, and what to: null removes it.</summary>
     private readonly record struct Change(ComicInfoField Field, string? Value);
 
-    public static int Run(string[] args, Terminal terminal, ITrash trash)
+    public static int Run(string[] args, Terminal terminal, ITrash trash, Func<Metron>? metron = null, ReadingPlaces? places = null)
     {
         var options = args.ToList();
+        bool lookup = options.Remove("--lookup");
         if (options.Remove("--help") || options.Remove("-h"))
         {
-            terminal.Out.WriteLine(Usage);
+            terminal.Out.WriteLine(lookup ? LookupCommand.Usage : Usage);
             return Exit.Done;
+        }
+
+        if (lookup)
+        {
+            return LookupCommand.Run(options, terminal, trash, metron ?? (() => MetronFromEnvironment(terminal)), places ?? ReadingPlaces.ForThisUser());
         }
 
         bool convert = options.Remove("--convert");
@@ -121,6 +129,14 @@ internal static class TagCommand
         }
 
         return Exit.Done;
+    }
+
+    /// <summary>Metron, with the credentials in the environment; an error saying how to give them when there are none.</summary>
+    private static Metron MetronFromEnvironment(Terminal terminal)
+    {
+        var credentials = Metron.Credentials(Environment.GetEnvironmentVariable, out string? problem)
+            ?? throw new MetronException(problem!);
+        return new Metron(Metron.Client(credentials), terminal.Out);
     }
 
     /// <summary>
