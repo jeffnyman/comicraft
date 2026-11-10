@@ -1,171 +1,178 @@
 # ComiCraft
 
-**ComiCraft** is a C# viewer for digital comics: CBZ (zip) and CBR (RAR) files, and PDFs whose
-pages are pictures, as comics' are. It shows a comic
-a page at a time, whole, fitted to the window's width, or zoomed, and scrolled across and down,
-and shows what the comic's `ComicInfo.xml` says about it, when it has one.
+**ComiCraft** is a comic book viewer written in C#. It reads CBZ (zip), CBR (RAR) and CB7 (7-Zip)
+files, as well as PDFs made of page images, which is what most comic PDFs are. You can read a page at a
+time, fit pages to the window's width, or zoom in and scroll around. If the comic has a
+`ComicInfo.xml`, ComiCraft will show you what it says.
 
-A comic's kind is found from its contents, not its extension, so a CBR that is really a zip (or
-the other way round) opens all the same. Its pages are the images in it (JPEG, PNG, GIF, WebP,
-BMP) in the natural order of their names, so `page2.jpg` comes before `page10.jpg`.
+ComiCraft looks at what's inside a file rather than trusting its extension, so a CBR that's
+really a zip (or vice versa) opens just fine. The pages are the images inside (JPEG, PNG, GIF,
+WebP or BMP), sorted the way you'd expect, so `page2.jpg` comes before `page10.jpg`.
 
 ### PDFs
 
-A PDF's pages are shown when each is a picture, as in the PDFs ComiCraft makes and in most
-scanned comics. The picture is taken out of the PDF as it is, a JPEG as the JPEG the PDF holds and
-anything else as the same pixels, so it looks as it would in the comic it was made from; the PDF
-is not drawn, as a reader of PDFs draws it. A page that is not only a picture, such as one with
-text set on it, or one made of several pictures, says why it is not shown in its place, and a PDF
-none of whose pages is a picture, such as a book of text, is not opened. Text hidden behind a
-picture, which makes a scan searchable, does not count. A `ComicInfo.xml` attached to the PDF, as
-ComiCraft attaches one, gives the comic's details.
+ComiCraft opens PDFs whose pages are each a single picture. That covers the PDFs ComiCraft
+makes itself and most scanned comics. Rather than rendering the PDF the way a PDF reader would,
+ComiCraft pulls each picture out as it is: a JPEG comes out as the very same JPEG, and anything
+else as the same pixels. So the page looks exactly as it did in the comic it came from.
+
+If a page isn't just a picture (say it has text set on it, or it's built from several images),
+ComiCraft shows a note explaining why in place of that page. A PDF with no picture pages at all,
+like an ordinary book of text, won't open. Hidden text behind a scan, the kind that makes it
+searchable, doesn't count against it. If the PDF has a `ComicInfo.xml` attached (ComiCraft
+attaches one to the PDFs it makes), that's where the comic's details come from.
 
 ## Reading
 
-`comicraft <comic>` opens the comic in a window the shape of its first page, or, when you have
-read it before, where you left it (see [Where you were](#where-you-were)). `comicraft <folder>`
-shows the comics in the folder, to choose one (see [The comics in a folder](#the-comics-in-a-folder)).
-`comicraft --help` lists the keys.
+`comicraft <comic>` opens a comic in a window shaped like its first page. If you've read it
+before, it picks up where you left off (see [Where you were](#where-you-were)).
+`comicraft <folder>` shows you the comics in that folder so you can pick one (see
+[The comics in a folder](#the-comics-in-a-folder)). `comicraft --help` lists the keys.
 
 | Option | What it does |
 |---|---|
-| `--fullscreen` | Opens on the whole display. |
+| `--fullscreen` | Opens full screen. |
 
 ### Fitting the page
 
-A comic page is taller than it is wide, and most screens are the other way round, so there are
-two ways to show it, and the page can be zoomed beyond either. **W** switches between the two;
-the title bar says when the page is fitted to the width, and how far it is zoomed.
+Comic pages are taller than they are wide, and most screens are the opposite, so there are two
+ways to fit a page, and you can zoom in beyond either one. **W** switches between them, and the
+title bar shows when you're fitted to width and how far you've zoomed.
 
 | Fit | What it does |
 |---|---|
-| Page | The whole page is seen at once, as large as fits. This is where a comic opens. |
-| Width | The page fills the width of the window, and is scrolled down through. Panels and lettering are as large as the window allows. |
-| Zoomed | The page is as large as you zoom it, from the whole page (100%) to four of the screen's pixels to each of the page's, and is scrolled across and down. |
+| Page | Shows the whole page at once, as large as it fits. Comics open this way. |
+| Width | Fills the width of the window, and you scroll down through the page. Panels and lettering are as large as the window allows. |
+| Zoomed | Shows the page as large as you like, from the whole page (100%) up to four screen pixels for every pixel of the page. You scroll across and down. |
 
-**+** and **−** zoom in and out at the middle of the window; Ctrl with the wheel, or a pinch on a
-trackpad, zooms at the pointer, keeping what is under it where it is. **0** goes back to the
-whole page. A zoom stays as the pages turn, as large on the next page as on this one, since what
-needed it on one page will on the next.
+**+** and **−** zoom in and out around the middle of the window. Ctrl with the mouse wheel, or a
+pinch on a trackpad, zooms around the pointer and keeps whatever's under it in place. **0** takes
+you back to the whole page. Your zoom carries over as you turn pages, since if you needed it on
+one page you'll probably need it on the next.
 
 ### Reading a page larger than the window
 
-A page is read as it is in print: across, and then down. Space goes a screen across the page; at
-its right, back to its left a screen further down; at its end, on to the next page, at its top
-left. Page Up goes the other way, back to the end of the page before. Where the page is no wider
-than the window, there is nothing to go across, and Space simply goes down.
+You read a page the way you would in print: across, then down. Space moves a screen across the
+page; when you reach the right edge, it jumps back to the left a screen further down; and at the
+bottom, it goes on to the top left of the next page. Page Up does the same in reverse, back to
+the end of the previous page. If the page is no wider than the window, there's nothing to go
+across, so Space just goes down.
 
 ### Keys
 
 | Key | What it does |
 |---|---|
-| Space, Page Down | Goes a screen across the page, or down it. At the end of a page, goes on to the top of the next. |
-| Page Up | Goes a screen back across the page, or up it. At the start of a page, goes back to the end of the one before. |
-| Down, Up | Goes down or up a little. At the end of a page, goes on or back a page, as above. |
-| Right | Goes right a little across a page wider than the window; at its right, or where the page fits, goes to the next page, at its top. |
-| Left | Goes left a little across a page wider than the window; at its left, or where the page fits, goes to the page before, at its top. |
-| Backspace | Goes to the page before, at its top. |
-| Home, End | Goes to the first page, or the last. |
-| W | Fits the page whole, or to the width. |
-| +, − | Zooms in, or out, at the middle of the window. (= zooms in too, so Shift is not needed.) |
-| 0 | Fits the whole page again. |
-| I | Shows the comic's details, or puts them away. |
-| L, Tab | Shows the comics in the folder, or puts them away. |
-| F, F11 | Switches between a window and the full screen. |
-| Escape | Puts the details away when they are showing; quits otherwise. |
+| Space, Page Down | Moves a screen across or down the page. At the end of a page, goes to the top of the next one. |
+| Page Up | Moves a screen back across or up the page. At the start of a page, goes back to the end of the previous one. |
+| Down, Up | Scrolls down or up a little. At the end of a page, goes on or back a page, as above. |
+| Right | Scrolls right a little on a page wider than the window. At the right edge, or if the page fits, goes to the top of the next page. |
+| Left | Scrolls left a little on a page wider than the window. At the left edge, or if the page fits, goes to the top of the previous page. |
+| Backspace | Goes to the top of the previous page. |
+| Home, End | Goes to the first or last page. |
+| W | Switches between fitting the whole page and fitting the width. |
+| +, − | Zooms in or out around the middle of the window. (= also zooms in, so you don't need Shift.) |
+| 0 | Goes back to fitting the whole page. |
+| I | Shows or hides the comic's details. |
+| L, Tab | Shows or hides the comics in the folder. |
+| F, F11 | Switches between windowed and full screen. |
+| Escape | Hides the details if they're showing; otherwise quits. |
 | Q | Quits. |
 
-Where the whole page is seen, there is nothing to scroll, so every key that goes on or back
-simply turns a page.
+When you're seeing the whole page, there's nothing to scroll, so any key that moves forward or
+back simply turns the page.
 
-The keys that go on or back, held down, scroll to the end of the page and stop there, and go on to
-the next page only when pressed again, so they never run on through pages unread; Space and Page
-Up stop at the end of each row of a page wider than the window, too. Where the whole page is
-seen, they turn page after page when held.
+If you hold down a key that moves forward or back, it scrolls to the end of the page and stops
+there. It only goes on to the next page when you press it again, so you never skip past pages
+you haven't read. On a page wider than the window, Space and Page Up also stop at the end of each
+row. When you're seeing the whole page, holding a key turns page after page.
 
 ### Mouse
 
 | Action | What it does |
 |---|---|
-| Wheel, or two fingers on a trackpad | Scrolls a page that is larger than the window, across as well as down. It never turns the page. |
-| Ctrl and the wheel, or a pinch on a trackpad | Zooms in or out at the pointer. |
-| Drag | Moves a page that is larger than the window. |
-| Click on the right half of the window | Goes forward, as Page Down does. |
-| Click on the left half of the window | Goes back, as Page Up does. |
-| Click with the details showing | Puts them away. |
+| Wheel, or two fingers on a trackpad | Scrolls a page larger than the window, across as well as down. It never turns the page. |
+| Ctrl and the wheel, or a pinch on a trackpad | Zooms in or out around the pointer. |
+| Drag | Moves a page larger than the window. |
+| Click on the right half of the window | Goes forward, like Page Down. |
+| Click on the left half of the window | Goes back, like Page Up. |
+| Click with the details showing | Hides them. |
 
-A click is a press and a release in the same place; once the pointer moves a few points with the
-button down, it is a drag, and the release turns no page.
+A click means pressing and releasing in the same spot. If you move the pointer more than a few
+points with the button down, it counts as a drag, and letting go won't turn the page.
 
 ### The comic's details
 
-**I** shows a panel over the page with what is known about the comic: its publisher and date, who
-wrote and drew it, who is in it, how many pages it has and the file it came from. The heading in
-the title bar comes from the same place, such as *Operation: Knightstrike #3 – Enter... Bloodstrike
-(July 1995)*.
+**I** shows a panel over the page with everything known about the comic: its publisher and date,
+who wrote and drew it, who appears in it, how many pages it has, and which file it came from. The
+title bar heading comes from the same place, for example *Operation: Knightstrike #3 – Enter...
+Bloodstrike (July 1995)*.
 
-All of this comes from the comic's `ComicInfo.xml`, the metadata file begun by ComicRack and kept
-now by the [Anansi Project](https://anansi-project.github.io/docs/comicinfo/intro). Comics without
-one, or with one that cannot be read, still open, and show their file name and their pages.
+All of this comes from the comic's `ComicInfo.xml`, the metadata format that started with
+ComicRack and is now maintained by the [Anansi Project](https://anansi-project.github.io/docs/comicinfo/intro).
+Comics without one, or with one that can't be read, still open fine; you'll just see the file
+name and the pages.
 
 ### The comics in a folder
 
-**L** (or Tab) shows the comics in the folder of the comic being read, in a panel down the left of
-the window, to open another in its place, as the files of a project are shown beside the code in
-an editor. Given a folder, `comicraft` opens with them showing.
+**L** (or Tab) opens a panel down the left side of the window listing the comics in the same
+folder as the one you're reading, so you can switch to another, much like the file list beside
+the code in an editor. If you give `comicraft` a folder, it opens with this panel showing.
 
 ```
 comicraft ~/Comics/Troll
 ```
 
-The folder above comes first, then the folders in it, then its comics (CBZ, CBR, CB7 and PDF),
-each in the order a reader expects, so that issue 2 comes before issue 10. Hidden files and
-folders, and anything that is not a comic, are left out. The comic being read is in gold.
+The list starts with the parent folder, then any subfolders, then the comics (CBZ, CBR, CB7 and
+PDF), each sorted the way you'd expect, so issue 2 comes before issue 10. Hidden files and
+folders, and anything that isn't a comic, are left out. The comic you're reading is shown in
+gold.
 
 | Key or mouse | What it does |
 |---|---|
-| Down, Up | Chooses the next entry, or the one before. |
-| Page Down, Page Up, Home, End | Chooses an entry a screen on or back, or the first or last. |
-| Enter, Right | Opens the comic chosen, or goes into the folder. |
-| Left, Backspace | Goes to the folder above. |
-| Click | Opens the comic clicked, or goes into the folder. |
+| Down, Up | Selects the next or previous entry. |
+| Page Down, Page Up, Home, End | Jumps a screen down or up, or to the first or last entry. |
+| Enter, Right | Opens the selected comic, or goes into the selected folder. |
+| Left, Backspace | Goes up to the parent folder. |
+| Click | Opens the comic, or goes into the folder, you clicked. |
 | Wheel | Scrolls the list. |
-| Click beside the list | Puts it away. |
-| L, Tab, Escape | Puts it away. With no comic open, Escape quits. |
+| Click outside the list | Hides it. |
+| L, Tab, Escape | Hides it. If no comic is open, Escape quits. |
 
-A comic opened from the list opens where you left it, as one opened by name does, and the one it
-replaces is remembered where you were in it. The window keeps its size, and the new comic is
-fitted to it. A comic that cannot be opened says why at the foot of the list, and the one being
-read stays open.
+A comic you open from the list picks up where you left off, just as it would if you opened it by
+name, and ComiCraft remembers your place in the one you were reading. The window stays the same
+size, and the new comic is fitted to it. If a comic can't be opened, the reason appears at the
+bottom of the list, and the one you were reading stays open.
 
 ### Where you were
 
-A comic opens where you left it: at the page you were on, fitted, zoomed and scrolled as it was.
-Where you are is remembered each time you turn a page and when you close the window, or stop
-ComiCraft with Ctrl+C. It is kept for each comic by its full path, so a comic that is moved or
-renamed opens at its first page, for the last 1000 comics read, in a file of your own:
+Comics open where you left off: on the same page, with the same fit, zoom and scroll position.
+Your place is saved every time you turn a page, when you close the window, and when you stop
+ComiCraft with Ctrl+C. It's stored by each comic's full path, so if you move or rename a comic,
+it'll open at the first page. ComiCraft remembers the last 1000 comics you've read, in a file of
+your own:
 
 | System | File |
 |---|---|
 | Windows | `%APPDATA%\ComiCraft\reading.json` |
 | macOS | `~/Library/Application Support/ComiCraft/reading.json` |
-| Linux | `$XDG_STATE_HOME/comicraft/reading.json`, which is `~/.local/state/comicraft/reading.json` unless the variable says otherwise |
+| Linux | `$XDG_STATE_HOME/comicraft/reading.json`, which is `~/.local/state/comicraft/reading.json` unless you've set that variable |
 
-Nothing else is kept there, and nothing about a comic is kept anywhere else. **Home** goes back to
-the first page at any time. To forget:
+Nothing else goes in that file, and nothing about your comics is stored anywhere else. You can
+press **Home** at any time to go back to the first page. To make ComiCraft forget:
 
 ```
-comicraft forget "Troll 001.cbz"    # forget one comic, which opens at its first page again
+comicraft forget "Troll 001.cbz"    # forget one comic, so it opens at the first page again
 comicraft forget --all              # forget every comic, removing the file
 ```
 
-A comic can be forgotten after it has been moved or deleted. Deleting the file by hand does the
-same as `--all`; a file that cannot be read is treated as empty and started again.
+You can forget a comic even after it's been moved or deleted. Deleting the file yourself does
+the same thing as `--all`, and if the file can't be read, ComiCraft treats it as empty and starts
+over.
 
 ## Changing a comic's details
 
-`comicraft tag <comic>` shows the fields of the comic's `ComicInfo.xml`. Given fields, it
-changes them, and says what it changed:
+`comicraft tag <comic>` shows the fields in a comic's `ComicInfo.xml`. Give it some fields and it
+changes them, then tells you what changed:
 
 ```
 comicraft tag "Troll 001.cbz" --series Troll --number 1 --year 1993 --publisher Image
@@ -173,80 +180,88 @@ comicraft tag "Troll 001.cbz" --cover-artist "Rob Liefeld"
 comicraft tag "Troll 001.cbz" --notes ""
 ```
 
-A field's name is its name in ComicInfo, in any case, with or without hyphens (`--coverartist`,
-`--cover-artist`, `--CoverArtist`), and `--field=value` works as well as `--field value`. An empty
-value (`""`) removes the field. `comicraft tag --help` lists every field.
+Field names are the same as in ComicInfo, in any case and with or without hyphens
+(`--coverartist`, `--cover-artist` and `--CoverArtist` all work). Both `--field=value` and
+`--field value` are fine. An empty value (`""`) removes the field. `comicraft tag --help` lists
+every field.
 
-Each value is checked before anything is done, so a mistake (a month of 13, a field that does not
-exist) leaves the comic as it was. A change that changes nothing does not write the file. Only the
-fields given change: everything else in `ComicInfo.xml` is kept, including what ComiCraft does not
-read itself, such as the page list or a tagger's own elements. The comic's pages are copied as they
-are, and the comic is replaced in one step, so it is never left half written. A comic that is
-read-only is left alone.
+Every value is checked before anything is written, so a mistake (a month of 13, or a field that
+doesn't exist) leaves the comic untouched. If nothing would actually change, the file isn't
+written at all. Only the fields you give are changed. Everything else in `ComicInfo.xml` is kept,
+including things ComiCraft doesn't use itself, like the page list or a tagging tool's own
+elements. The pages are copied over unchanged, and the comic is replaced in a single step, so
+it's never left half written. Read-only comics are left alone.
 
-A PDF's `ComicInfo.xml` is shown, but not changed: change the CBZ the PDF was made from, and make
-the PDF again.
+You can see a PDF's `ComicInfo.xml`, but not change it. To change it, edit the CBZ the PDF was
+made from and make the PDF again.
 
 ### CBRs
 
-A CBR is a RAR archive, and RAR can be read by free software but not written. To change a CBR,
-ComiCraft converts it to a CBZ beside it, with everything that was in it, and changes that. It asks
-before converting, unless `--convert` is given, and then asks whether to move the original to the
-Trash. The answer is no unless it is yes, and the original only goes once the CBZ has been opened
-again and found to have the same pages.
+A CBR is a RAR archive, and while free software can read RAR, it can't write it. So to change a
+CBR, ComiCraft converts it to a CBZ alongside it, with everything the CBR had in it, and changes
+that instead. It asks before converting (unless you pass `--convert`), and then asks whether to
+move the original to the Trash. Anything other than yes means no. Even then, the original is only
+removed once the new CBZ has been opened again and checked to have the same pages.
 
-On macOS the original goes to the Trash of the drive it is on, as it would from Finder. On Linux
-it goes to the Trash as the [freedesktop.org Trash Specification](https://specifications.freedesktop.org/trash/latest/)
-lays it out, which GNOME, KDE and tools such as `trash-cli` all read: the home trash
-(`~/.local/share/Trash`) for a file on the same file system as the home, and that file system's
-own (`.Trash-<uid>` at its top) for one on another, as a Windows drive under `/mnt` is in WSL. On
-Windows it goes to the Recycle Bin of the drive it is on, as it would from Explorer. Windows deletes
-a file permanently, and quietly, where it cannot recycle it (a drive with no Recycle Bin, one set
-not to keep deleted files, a file too large for the Bin), so ComiCraft asks Windows first whether it
-means to recycle the file, and stops it when it does not.
+Where the original goes depends on your system:
 
-On every system, an original the Trash will not take is only deleted permanently when you say so.
+- **macOS:** the Trash for the drive it's on, just as if you'd deleted it in Finder.
+- **Linux:** the Trash laid out by the [freedesktop.org Trash Specification](https://specifications.freedesktop.org/trash/latest/),
+  which GNOME, KDE and tools like `trash-cli` all understand. A file on the same file system as
+  your home folder goes to the home trash (`~/.local/share/Trash`). A file on a different file
+  system goes to that file system's own trash (`.Trash-<uid>` at its top), which includes Windows
+  drives under `/mnt` in WSL.
+- **Windows:** the Recycle Bin for the drive it's on, just as if you'd deleted it in Explorer.
+  Windows quietly deletes a file for good when it can't recycle it (on a drive with no Recycle
+  Bin, one set not to keep deleted files, or for a file too big for the Bin). So ComiCraft checks
+  with Windows first and stops the delete if the file wouldn't actually be recycled.
+
+On any system, if the Trash won't take the original, it's only deleted permanently if you say so.
 
 ## Converting a comic
 
 `comicraft convert <comic>` converts a comic to a CBZ without changing anything else, and
-`comicraft convert <comic> --format pdf` converts it to a PDF. Either way, it then asks about the
-original as above, and it goes only once what was made has been read back and found to have its
-pages. `--to <file>` names what is made (a name ending in `.pdf` makes a PDF without `--format`),
-and an existing file is never written over.
+`comicraft convert <comic> --format pdf` converts it to a PDF. Either way, ComiCraft then asks
+about the original, as described above, and only removes it once the new file has been read back
+and found to have all the pages. `--to <file>` names the new file (a name ending in `.pdf` makes a
+PDF, even without `--format`). An existing file is never overwritten.
 
-A PDF ComiCraft can open (see [PDFs](#pdfs)) converts to a CBZ too: each page goes in as the
-picture it is, byte for byte, named for its place (`Page 001.jpg`, `Page 002.png`), with the PDF's
-attached `ComicInfo.xml`. A comic converted to a PDF and back has the same pages as it had. A PDF
-with a page that is not a picture is not converted, since there is nothing to put in its place.
-The PDF only goes once the CBZ has been read back and found to have the same pictures.
+Any PDF ComiCraft can open (see [PDFs](#pdfs)) can also be converted to a CBZ. Each page goes in
+as the exact picture it is, named for its position (`Page 001.jpg`, `Page 002.png`), along with
+the PDF's attached `ComicInfo.xml`. A comic converted to a PDF and back has the same pages it
+started with. A PDF with a page that isn't a picture won't be converted, since there's nothing
+to put in that page's place. The PDF is only removed once the CBZ has been read back and found to
+have the same pictures.
 
-A PDF has a page for each of the comic's pages, in the same order, each the page's image and
-nothing else. Nothing is lost on the way. JPEG pages, and PNG pages, go in as they are, byte for
-byte, as a PDF can hold them. WebP, GIF and BMP pages, which it cannot, go in as their pixels,
-compressed without loss, as do the few PNGs and JPEGs a PDF cannot hold (a PNG with transparency
-keeps it). Every page is 10¼ inches high, a printed comic's height, and as wide as its shape makes
-it, so a page is about 6⅝ inches wide, as in print, and a spread twice that, however finely it was
-scanned.
+A PDF made by ComiCraft has one page for each of the comic's pages, in the same order, and each
+page holds just that image. Nothing is lost along the way:
 
-The comic's `ComicInfo.xml` gives the PDF its title (the heading, as the title bar shows it), its
-author (the writers), its subject (the summary) and its keywords (the genres), and goes in whole,
-as an attachment, so nothing in it is lost. Anything else in the archive, such as a scanner's note,
-has no place in a PDF and is left out. ComiCraft opens the PDF with the same pages, byte for byte,
-and the same details.
+- JPEG and PNG pages go in exactly as they are, byte for byte, since a PDF can hold them directly.
+- WebP, GIF and BMP pages, which a PDF can't hold directly, go in as their pixels, compressed
+  without loss. So do the occasional PNGs and JPEGs a PDF can't hold. (A PNG with transparency
+  keeps it.)
+- Every page is 10¼ inches tall, the height of a printed comic, and as wide as its shape calls
+  for. A regular page comes out about 6⅝ inches wide, as in print, and a two-page spread twice
+  that, no matter how finely it was scanned.
 
-Before the original goes, the PDF is read back by [PdfPig](https://github.com/UglyToad/PdfPig), a
-reader of PDFs that is not ComiCraft's own: it must have as many pages, each with one image, whose
-data is the data that was written.
+The comic's `ComicInfo.xml` supplies the PDF's title (the heading you see in the title bar), its
+author (the writers), its subject (the summary) and its keywords (the genres). The whole file
+also goes in as an attachment, so nothing in it is lost. Anything else in the archive, like a
+scanner's note, has no place in a PDF and is left out. When ComiCraft opens the PDF, you get the
+same pages, byte for byte, and the same details.
+
+Before the original is removed, the PDF is read back by [PdfPig](https://github.com/UglyToad/PdfPig),
+a PDF reader that's independent of ComiCraft. It has to find the same number of pages, each with
+one image whose data matches what was written.
 
 ### A folder of comics
 
-Given a folder, `convert` converts every comic in it: every CBR to a CBZ, or, with
-`--format pdf`, every CBR and CBZ to a PDF, each beside itself. `--from` says which kinds to
-convert instead (`cbr`, `cbz` or `pdf`, or more than one, as `cbr,pdf`), so `--from pdf` converts
-every PDF to a CBZ. A PDF is only converted when asked for, as a folder's PDFs may not be comics;
-one that is not is reported and kept. `--recursive` takes in the folders in it as well, passing
-over hidden ones (a Trash is one) and links to folders.
+Give `convert` a folder and it converts every comic in it: every CBR to a CBZ, or, with
+`--format pdf`, every CBR and CBZ to a PDF, each one next to its original. Use `--from` to choose
+which kinds to convert instead (`cbr`, `cbz` or `pdf`, or several, like `cbr,pdf`), so
+`--from pdf` converts every PDF to a CBZ. PDFs are only converted when you ask, since the PDFs in
+a folder aren't necessarily comics; one that isn't gets reported and left alone. `--recursive`
+includes subfolders too, skipping hidden ones (such as a Trash folder) and links to folders.
 
 ```
 comicraft convert ~/Comics/Troll
@@ -255,48 +270,48 @@ comicraft convert ~/Comics --from pdf --recursive
 comicraft convert ~/Comics --from cbr,pdf
 ```
 
-What becomes of the originals is asked once, before any comic is converted, so the rest needs no
-one there; each original is still checked before it goes, and one the Trash will not take is kept,
-not asked about. A comic whose CBZ or PDF is already there is skipped. One that cannot be converted
-is reported, and the rest go on. Each is numbered as it is done (`[3/40]`), and a line at the end
-says how many were converted, skipped or could not be. Ctrl+C stops once the comic being
-converted is done, and a second Ctrl+C stops at once. ComiCraft exits with 3 when a comic could not
-be converted or the conversion was stopped, and with 0 otherwise.
+ComiCraft asks what to do with the originals once, before it starts, so you don't have to stay
+and watch. Each original is still checked before it's removed, and one the Trash won't take is
+kept without asking. A comic whose CBZ or PDF already exists is skipped. If a comic can't be
+converted, it's reported and the rest carry on. Each comic is numbered as it's done (`[3/40]`),
+and a summary at the end says how many were converted, skipped or failed. Ctrl+C stops after the
+current comic finishes, and a second Ctrl+C stops right away. ComiCraft exits with 3 if any comic
+couldn't be converted or the run was stopped, and with 0 otherwise.
 
 | Option | What it does |
 |---|---|
-| `--convert` | Converts a CBR to change it, without asking. (`tag`) |
+| `--convert` | Converts a CBR so it can be changed, without asking. (`tag`) |
 | `--delete-original` | Moves the original to the Trash after converting, without asking. |
 | `--keep-original` | Keeps the original after converting, without asking. |
-| `--format cbz \| pdf` | What a conversion makes: a CBZ, which it makes unless told, or a PDF. (`convert`) |
-| `--to <file>` | Names what a conversion makes, for one comic. (`convert`) |
-| `--from <kinds>` | Which kinds of comic in a folder to convert: `cbr`, `cbz` or `pdf`, or more than one, as `cbr,pdf`. (`convert`) |
-| `--recursive` | Converts the comics in the folders in a folder too. (`convert`) |
+| `--format cbz \| pdf` | What to convert to: a CBZ (the default) or a PDF. (`convert`) |
+| `--to <file>` | Names the converted file, when converting a single comic. (`convert`) |
+| `--from <kinds>` | Which kinds of comic in a folder to convert: `cbr`, `cbz` or `pdf`, or several, like `cbr,pdf`. (`convert`) |
+| `--recursive` | Converts comics in subfolders too. (`convert`) |
 
-Run from a script, with its input redirected, ComiCraft asks nothing: a CBR is not converted
-without `--convert`, an original is kept without `--delete-original`, and an original the Trash
-will not take is kept.
+When run from a script with its input redirected, ComiCraft never asks anything: a CBR isn't
+converted without `--convert`, an original is kept without `--delete-original`, and an original
+the Trash won't take is kept.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering the pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
-| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the comics in a folder (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), where you were in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
-| `tests/ComiCraft.Comics.Tests` | Tests for the library, on small comics and images made in memory and on disk, CBRs among them, with the PDFs it makes read back by PdfPig, and PDFs made by hand of pages that are pictures and pages that are not. |
-| `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and its moving through a comic, without a window, and for the commands. |
+| `src/ComiCraft.Comics` | The comic library: opening archives, finding and ordering pages, reading and editing `ComicInfo.xml`, writing and converting archives, converting comics to PDFs and reading PDFs as comics, and the details and text wrapping the viewer shows. |
+| `src/ComiCraft.Viewer` | The `comicraft` command: the viewer, built on SDL (the window, fitting and scrolling pages, keys and mouse, and the details panel), the folder list (`Shelf`), the `tag`, `convert` and `forget` commands (`Cli`), remembering your place in each comic (`ReadingPlaces`), and moving originals to the Trash (`Platform`). |
+| `tests/ComiCraft.Comics.Tests` | Tests for the library, using small comics and images made in memory and on disk (CBRs included), PDFs it makes read back by PdfPig, and hand-made PDFs with both picture and non-picture pages. |
+| `tests/ComiCraft.Viewer.Tests` | Tests for the viewer's layout and navigation, without a window, and for the commands. |
 
-Beyond the .NET SDK, the dependencies are [SharpCompress](https://github.com/adamhathcock/sharpcompress)
-for the archives, PdfPig for reading PDFs, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`) and SDL3_ttf
-(`ppy.SDL3_ttf-CS`) for the viewer's window, its pages and its text.
+Besides the .NET SDK, ComiCraft depends on [SharpCompress](https://github.com/adamhathcock/sharpcompress)
+for archives, PdfPig for reading PDFs, and SDL3 (`ppy.SDL3-CS`), SDL3_image (`ppy.SDL3_image-CS`)
+and SDL3_ttf (`ppy.SDL3_ttf-CS`) for the viewer's window, images and text.
 
-The viewer's text is set in [Inter](https://rsms.me/inter/), by Rasmus Andersson, built into the
-viewer. Inter is licensed under the SIL Open Font License 1.1, which is in
-`src/ComiCraft.Viewer/Fonts/OFL.txt` and is copied beside the viewer when it is built.
+The viewer's text is set in [Inter](https://rsms.me/inter/), by Rasmus Andersson, which is built
+into the viewer. Inter is licensed under the SIL Open Font License 1.1, included in
+`src/ComiCraft.Viewer/Fonts/OFL.txt` and copied alongside the viewer when it's built.
 
 ## Building and running
 
-Needs the .NET 10 SDK.
+You'll need the .NET 10 SDK.
 
 ```
 dotnet build ComiCraft.slnx
