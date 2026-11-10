@@ -1,4 +1,10 @@
-# ComiCraft
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/jeffnyman/comicraft/main/assets/comicraft-title.png" width="480" alt="ComiCraft">
+</h1>
+
+<p align="center">
+  ✨ Long live the classics.
+</p>
 
 **ComiCraft** is a comic book viewer written in C#. It reads CBZ (zip), CBR (RAR) and CB7 (7-Zip)
 files, as well as PDFs made of page images, which is what most comic PDFs are. You can read a page at a
@@ -367,3 +373,62 @@ dotnet run --project src/ComiCraft.Viewer -- --help
 ```
 
 Comics never go in the repository: `*.cbz` and `*.cbr` are ignored.
+
+## Author
+
+<p align="center">
+  Made with 🤍 by <a href="https://github.com/jeffnyman">Jeff Nyman</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C%23-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt="C#">
+</p>
+
+<p align="center">
+  <a href="https://testerstories.com" target="_blank" >
+    <img src="https://img.shields.io/badge/Website-Jeff%20Nyman-000000?style=social&logo=wordpress" alt="Website - Jeff Nyman">
+  </a>
+</p>
+<p align="center">
+  <a href="https://www.linkedin.com/in/jeffnyman/" target="_blank" >
+    <img src="https://img.shields.io/badge/LinkedIn-Jeff%20Nyman-0A66C2?style=social&logo=linkedin" alt="LinkedIn - Jeff Nyman">
+  </a>
+</p>
+
+## Doxazein (δοξάζειν)
+
+<p align="center">
+  חֶסֶד וֶאֱמֶת אַל־יַעַזְבֻךָ קָשְׁרֵם עַל־גַּרְגְּרֹתֶיךָ כָּתְבֵם עַל־לוּחַ לִבֶּךָ
+</p>
+
+<p align="center">
+"Let not mercy and truth forsake thee:<br>
+bind them about thy neck;<br>
+write them upon the table of thine heart."<br>
+<em>Proverbs 3:3</em>
+</p>
+
+## License
+
+**ComiCraft**, A Viewer for Digital Comics\
+Copyright (C) 2026 [Jeff Nyman][owner]
+
+[![GNU General Public License version 3](https://raw.githubusercontent.com/jeffnyman/comicraft/main/assets/gplv3-127x51.png)][GNU General Public License]
+
+> This program is free software: you can redistribute it and/or modify
+> it under the terms of the [GNU General Public License] as published by
+> the Free Software Foundation, either version 3 of the License, or
+> (at your option) any later version.
+>
+> This program is distributed in the hope that it will be useful,
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+> [GNU General Public License] for more details.
+
+[owner]: https://github.com/jeffnyman
+[GNU General Public License]: https://www.gnu.org/licenses/gpl-3.0.en.html
+
+The Inter typeface built into the viewer is under the SIL Open Font License 1.1, in
+`src/ComiCraft.Viewer/Fonts/OFL.txt`. Details a comic gets from [Metron](https://metron.cloud)
+are Metron's, shared under CC BY-SA 4.0, and each comic's `Notes` says so. ComiCraft ships no
+comics.
